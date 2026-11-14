@@ -1,6 +1,7 @@
 mod calc;
 mod db;
 mod domain;
+mod game_file;
 mod ui;
 
 use std::rc::Rc;

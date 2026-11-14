@@ -1,8 +1,10 @@
 //! UI tests: the real window on a temporary database, driven through clicks and keys.
 
+use std::path::PathBuf;
 use std::rc::Rc;
+use std::time::Duration;
 
-use gpui_kit::test::TestWindowExt;
+use gpui_kit::test::{TestAppContextExt, TestWindowExt};
 use gpui_kit::{AnyWindowHandle, AppContext, Bounds, Entity, Point, TestAppContext, WindowBounds, WindowOptions, px, size};
 use uuid::Uuid;
 
@@ -85,4 +87,114 @@ fn typing_a_gathered_amount_and_pressing_enter_adds_it_to_inventory(cx: &mut Tes
     })
     .unwrap();
     assert_eq!(fx.db.load_game(fx.game).unwrap().owned(fx.coal), 9.0);
+}
+
+/// Exports the fixture's game with its progress, then changes the game so that an import shows.
+fn exported_then_changed(fx: &Fixture) -> PathBuf {
+    let path = fx._dir.path().join("Hollowdeep.zip");
+    fx.db.export_game(fx.game, true, &path).unwrap();
+    fx.db.add_item(fx.game, "Lantern").unwrap();
+    fx.db.set_inventory(fx.coal, 99.0).unwrap();
+    path
+}
+
+/// Starts importing `path` and waits for the dialog asking what to do about the existing game.
+async fn import_into_clash(cx: &mut TestAppContext, window: AnyWindowHandle, planner: &Entity<Planner>, path: PathBuf) {
+    cx.update_window(window, |_, window, cx| {
+        window.render_frame(cx);
+        planner.update(cx, |this, cx| this.import_path(&path, window, cx));
+    })
+    .unwrap();
+    cx.wait_for(window, Duration::from_millis(500), |window, _| window.try_find("import-merge").is_some()).await;
+}
+
+#[gpui_kit::test]
+async fn importing_a_game_file_with_a_new_title_adds_the_game_without_asking(cx: &mut TestAppContext) {
+    let fx = fixture();
+    let path = exported_then_changed(&fx);
+    fx.db.rename_game(fx.game, "Saltwind Isles").unwrap();
+    let (window, planner) = open(cx, fx.db.clone());
+    cx.update_window(window, |_, window, cx| {
+        window.render_frame(cx);
+        planner.update(cx, |this, cx| this.import_path(&path, window, cx));
+        window.render_frame(cx);
+        assert!(window.try_find("import-merge").is_none());
+    })
+    .unwrap();
+    let titles: Vec<String> = fx.db.games().unwrap().into_iter().map(|g| g.title).collect();
+    assert_eq!(titles, ["Saltwind Isles", "Hollowdeep"]);
+}
+
+#[gpui_kit::test]
+async fn merge_keeps_the_existing_game_and_its_progress(cx: &mut TestAppContext) {
+    let fx = fixture();
+    let path = exported_then_changed(&fx);
+    let (window, planner) = open(cx, fx.db.clone());
+    import_into_clash(cx, window, &planner, path).await;
+    cx.update_window(window, |_, window, cx| window.click("import-merge", cx)).unwrap();
+    cx.wait_for(window, Duration::from_millis(500), |window, _| window.try_find("import-merge").is_none()).await;
+    assert_eq!(fx.db.games().unwrap().len(), 1);
+    let data = fx.db.load_game(fx.game).unwrap();
+    assert_eq!((data.items.len(), data.owned(fx.coal)), (4, 99.0));
+}
+
+#[gpui_kit::test]
+async fn replace_asks_again_before_discarding_the_existing_game(cx: &mut TestAppContext) {
+    let fx = fixture();
+    let path = exported_then_changed(&fx);
+    let (window, planner) = open(cx, fx.db.clone());
+    import_into_clash(cx, window, &planner, path).await;
+    cx.update_window(window, |_, window, cx| window.click("import-replace", cx)).unwrap();
+    cx.wait_for(window, Duration::from_millis(500), |window, _| window.try_find("import-merge").is_none() && window.try_find("ok").is_some()).await;
+    // Nothing has happened yet: the existing game is still there, changes and all.
+    assert_eq!(fx.db.load_game(fx.game).unwrap().items.len(), 4);
+
+    cx.update_window(window, |_, window, cx| window.click("ok", cx)).unwrap();
+    cx.wait_for(window, Duration::from_millis(500), |window, _| window.try_find("ok").is_none()).await;
+    let games = fx.db.games().unwrap();
+    assert_eq!(games.len(), 1);
+    assert_ne!(games[0].id, fx.game);
+    let data = fx.db.load_game(games[0].id).unwrap();
+    let coal = data.items.iter().find(|i| i.name == "Coal").unwrap().id;
+    assert_eq!((data.items.len(), data.owned(coal), data.plans.len()), (3, 5.0, 1));
+}
+
+#[gpui_kit::test]
+async fn keep_both_imports_under_a_numbered_title(cx: &mut TestAppContext) {
+    let fx = fixture();
+    let path = exported_then_changed(&fx);
+    let (window, planner) = open(cx, fx.db.clone());
+    import_into_clash(cx, window, &planner, path).await;
+    cx.update_window(window, |_, window, cx| window.click("import-keep-both", cx)).unwrap();
+    cx.wait_for(window, Duration::from_millis(500), |window, _| window.try_find("import-merge").is_none()).await;
+    let titles: Vec<String> = fx.db.games().unwrap().into_iter().map(|g| g.title).collect();
+    assert_eq!(titles, ["Hollowdeep", "Hollowdeep (2)"]);
+    assert_eq!(fx.db.load_game(fx.game).unwrap().items.len(), 4);
+}
+
+#[gpui_kit::test]
+async fn the_export_dialog_leaves_progress_out_unless_its_box_is_ticked(cx: &mut TestAppContext) {
+    let fx = fixture();
+    let (window, planner) = open(cx, fx.db.clone());
+    let plain = fx._dir.path().join("plain.zip");
+    let full = fx._dir.path().join("full.zip");
+    cx.update_window(window, |_, window, cx| {
+        window.render_frame(cx);
+        planner.update(cx, |this, cx| this.export_dialog(fx.game, window, cx));
+    })
+    .unwrap();
+    cx.wait_for(window, Duration::from_millis(500), |window, _| window.try_find("export-progress").is_some()).await;
+    cx.update_window(window, |_, window, cx| {
+        assert_eq!(window.find("export-progress").checked(), Some(false));
+        let include = planner.read(cx).export_progress;
+        planner.update(cx, |this, cx| this.export_to(fx.game, include, &plain, window, cx));
+        window.click("export-progress", cx);
+        window.render_frame(cx);
+        assert_eq!(window.find("export-progress").checked(), Some(true));
+        let include = planner.read(cx).export_progress;
+        planner.update(cx, |this, cx| this.export_to(fx.game, include, &full, window, cx));
+    })
+    .unwrap();
+    assert!(crate::game_file::GameFile::read(&plain).unwrap().progress.is_none());
+    assert_eq!(crate::game_file::GameFile::read(&full).unwrap().progress.unwrap().plans.len(), 1);
 }

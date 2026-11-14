@@ -5,7 +5,7 @@ A planner for crafting in games: it records what a game's items are made of and 
 ## Language
 
 **Game**:
-A game the player plans for. Every other concept belongs to exactly one game.
+A game the player plans for. Every other concept belongs to exactly one game. No two games share a title, ignoring case.
 
 **Item**:
 Anything in a game that can be owned, crafted, or used as an ingredient.
@@ -63,3 +63,24 @@ _Avoid_: Shopping list, bill of materials
 **Surplus**:
 Items a craft yields beyond what was needed, because crafts are whole.
 _Avoid_: Leftover, excess
+
+**Progress**:
+A player's inventory and plans in a game, as opposed to the items and recipes that describe the game.
+
+**Game file**:
+A single file holding one game: its items, recipes and pictures, and optionally the player's progress.
+_Avoid_: Archive, backup, save file
+
+**Export**:
+Writing one game to a game file. The player chooses whether their progress goes into it; by default it does not.
+
+**Import**:
+Bringing a game file into the planner. It becomes a new game unless a game with the same title exists, in which case the player chooses to replace that game, merge into it, or keep both.
+
+**Replace**:
+An import that discards the existing game, progress included, and puts the game file's contents in its place.
+_Avoid_: Overwrite, update
+
+**Merge**:
+An import that adds to the existing game whatever items, recipes and pictures it lacks, matching items by name. It never removes or changes anything already there, and it ignores progress in the game file.
+_Avoid_: Sync, combine

@@ -15,6 +15,7 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePool, SqlitePoolOptions};
 use uuid::Uuid;
 
 use crate::domain::{Game, GameData, Input, Item, Plan, Recipe};
+use crate::game_file::{FileInput, FileItem, FileOwned, FilePlan, FileProgress, FileRecipe, GameFile, name_key};
 
 static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
 
@@ -35,6 +36,28 @@ pub struct GameStats {
     pub items: i64,
     pub recipes: i64,
     pub plans: i64,
+}
+
+/// What an import does when a game with the game file's title already exists.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OnClash {
+    /// Discard the existing game, progress included, and put the file's contents in its place.
+    Replace,
+    /// Add the items, recipes and pictures the existing game lacks. Nothing is removed or changed.
+    Merge,
+    /// Import as a new game under a numbered title.
+    KeepBoth,
+}
+
+/// What an import did.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Imported {
+    pub game: Uuid,
+    pub title: String,
+    pub merged: bool,
+    /// Items and recipes added.
+    pub items: usize,
+    pub recipes: usize,
 }
 
 /// `$XDG_DATA_HOME/game_planner`, falling back to `~/.local/share/game_planner`.
@@ -136,10 +159,25 @@ impl Db {
         })
     }
 
+    /// The game with this title, ignoring case and surrounding spaces. Titles are unique, but
+    /// data from before they were may hold several; the oldest wins.
+    pub fn game_titled(&self, title: &str) -> Result<Option<Uuid>> {
+        self.rt.block_on(async {
+            let id: Option<String> = sqlx::query_scalar("SELECT id FROM games WHERE title = ? COLLATE NOCASE ORDER BY created_at, rowid LIMIT 1")
+                .bind(title.trim())
+                .fetch_optional(&self.pool)
+                .await?;
+            Ok(id.map(|id| Uuid::from_str(&id)).transpose()?)
+        })
+    }
+
     pub fn add_game(&self, title: &str) -> Result<Uuid> {
         let title = title.trim();
         if title.is_empty() {
             bail!("A game needs a title.");
+        }
+        if self.game_titled(title)?.is_some() {
+            bail!("There is already a game called {title}.");
         }
         let id = Uuid::new_v4();
         self.rt.block_on(async {
@@ -158,6 +196,9 @@ impl Db {
         let title = title.trim();
         if title.is_empty() {
             bail!("A game needs a title.");
+        }
+        if self.game_titled(title)?.is_some_and(|other| other != id) {
+            bail!("There is already a game called {title}.");
         }
         self.rt.block_on(async {
             sqlx::query("UPDATE games SET title = ? WHERE id = ?").bind(title).bind(id.to_string()).execute(&self.pool).await?;
@@ -193,6 +234,212 @@ impl Db {
         })?;
         let _ = std::fs::remove_dir_all(self.data_dir.join("images").join(id.to_string()));
         Ok(())
+    }
+
+    // ---- game files ----
+
+    /// Writes a game to a game file at `dest`: its items, recipes and pictures, and the player's
+    /// inventory and plans only when `include_progress` is set.
+    pub fn export_game(&self, id: Uuid, include_progress: bool, dest: &Path) -> Result<()> {
+        let game = self.games()?.into_iter().find(|g| g.id == id).context("This game no longer exists.")?;
+        let data = self.load_game(id)?;
+        let mut file = GameFile::new(game.title);
+        // Pictures are stored as they are: small ones were already enlarged when first imported.
+        let pack = |file: &mut GameFile, stem: &str, relative: &Option<String>| {
+            let relative = relative.as_ref()?;
+            let bytes = std::fs::read(self.image_path(relative)).ok()?;
+            file.add_picture(stem, relative, bytes)
+        };
+        file.thumbnail = pack(&mut file, "thumbnail", &game.thumbnail);
+        for (n, item) in data.items.iter().enumerate() {
+            let picture = pack(&mut file, &n.to_string(), &item.icon);
+            let recipes = data
+                .recipes_of(item.id)
+                .map(|r| FileRecipe {
+                    output: r.output,
+                    default: r.is_default,
+                    inputs: r.inputs.iter().map(|i| FileInput { item: data.item_name(i.item_id).to_string(), amount: i.amount }).collect(),
+                })
+                .collect();
+            file.items.push(FileItem { name: item.name.clone(), picture, recipes });
+        }
+        if include_progress {
+            file.progress = Some(FileProgress {
+                inventory: data.items.iter().filter(|i| data.owned(i.id) > 0.0).map(|i| FileOwned { item: i.name.clone(), amount: data.owned(i.id) }).collect(),
+                plans: data.plans.iter().map(|p| FilePlan { item: data.item_name(p.item_id).to_string(), target: p.target, note: p.note.clone() }).collect(),
+            });
+        }
+        file.write(dest)
+    }
+
+    /// Brings a game file into the planner. It becomes a new game unless a game with its title
+    /// exists; then `on_clash` decides, and without one the import is refused.
+    /// Either everything is imported or nothing is.
+    pub fn import_game(&self, file: &GameFile, on_clash: Option<OnClash>) -> Result<Imported> {
+        let existing = self.game_titled(&file.title)?;
+        let (merge_into, replace, title) = match (existing, on_clash) {
+            (None, _) => (None, None, file.title.clone()),
+            (Some(_), None) => bail!("There is already a game called {}.", file.title),
+            (Some(id), Some(OnClash::Merge)) => (Some(id), None, file.title.clone()),
+            (Some(id), Some(OnClash::Replace)) => (None, Some(id), file.title.clone()),
+            (Some(_), Some(OnClash::KeepBoth)) => {
+                let mut n = 2;
+                while self.game_titled(&format!("{} ({n})", file.title))?.is_some() {
+                    n += 1;
+                }
+                (None, None, format!("{} ({n})", file.title))
+            }
+        };
+        let game = merge_into.unwrap_or_else(Uuid::new_v4);
+        // What a merge has to compare against. Read before the transaction: the pool has one connection.
+        let (old, old_thumbnail) = match merge_into {
+            Some(id) => (self.load_game(id)?, self.games()?.into_iter().find(|g| g.id == id).and_then(|g| g.thumbnail)),
+            None => (GameData::default(), None),
+        };
+
+        // Pictures are written as the rows that name them are, and removed again if anything fails.
+        let written = std::cell::RefCell::new(Vec::<String>::new());
+        let save = |picture: Option<&String>| -> Result<Option<String>> {
+            let Some((bytes, ext)) = file.picture(picture) else { return Ok(None) };
+            let dir = format!("images/{game}");
+            std::fs::create_dir_all(self.data_dir.join(&dir))?;
+            let relative = format!("{dir}/{}.{ext}", Uuid::new_v4());
+            std::fs::write(self.data_dir.join(&relative), bytes).context("saving a picture")?;
+            written.borrow_mut().push(relative.clone());
+            Ok(Some(relative))
+        };
+
+        let result = self.rt.block_on(async {
+            let mut tx = self.pool.begin().await?;
+            let g = game.to_string();
+            let now = now_ms();
+
+            if merge_into.is_none() {
+                // A replacement keeps the replaced game's place in the library.
+                let mut created_at = now;
+                if let Some(old_id) = replace {
+                    let o = old_id.to_string();
+                    created_at = sqlx::query_scalar("SELECT created_at FROM games WHERE id = ?").bind(&o).fetch_one(&mut *tx).await?;
+                    sqlx::query("DELETE FROM recipe_details WHERE item_id IN (SELECT id FROM items WHERE game_id = ?)").bind(&o).execute(&mut *tx).await?;
+                    sqlx::query("DELETE FROM games WHERE id = ?").bind(&o).execute(&mut *tx).await?;
+                }
+                sqlx::query("INSERT INTO games (id, title, thumbnail, created_at) VALUES (?, ?, ?, ?)")
+                    .bind(&g)
+                    .bind(&title)
+                    .bind(save(file.thumbnail.as_ref())?)
+                    .bind(created_at)
+                    .execute(&mut *tx)
+                    .await?;
+            } else if old_thumbnail.is_none()
+                && let Some(thumbnail) = save(file.thumbnail.as_ref())?
+            {
+                sqlx::query("UPDATE games SET thumbnail = ? WHERE id = ?").bind(thumbnail).bind(&g).execute(&mut *tx).await?;
+            }
+
+            let mut ids: HashMap<String, Uuid> = old.items.iter().map(|i| (name_key(&i.name), i.id)).collect();
+            let mut items = 0;
+            for item in &file.items {
+                match ids.get(&name_key(&item.name)).and_then(|id| old.item(*id)) {
+                    None => {
+                        let id = Uuid::new_v4();
+                        sqlx::query("INSERT INTO items (id, game_id, name, icon) VALUES (?, ?, ?, ?)")
+                            .bind(id.to_string())
+                            .bind(&g)
+                            .bind(&item.name)
+                            .bind(save(item.picture.as_ref())?)
+                            .execute(&mut *tx)
+                            .await?;
+                        ids.insert(name_key(&item.name), id);
+                        items += 1;
+                    }
+                    // An item the game already has keeps its own picture.
+                    Some(known) if known.icon.is_none() => {
+                        if let Some(icon) = save(item.picture.as_ref())? {
+                            sqlx::query("UPDATE items SET icon = ? WHERE id = ?").bind(icon).bind(known.id.to_string()).execute(&mut *tx).await?;
+                        }
+                    }
+                    Some(_) => {}
+                }
+            }
+
+            let mut recipes = 0;
+            for item in &file.items {
+                let item_id = ids[&name_key(&item.name)];
+                let had_recipes = old.recipes_of(item_id).next().is_some();
+                for recipe in &item.recipes {
+                    let inputs: Vec<Input> = recipe.inputs.iter().map(|i| Input { item_id: ids[&name_key(&i.item)], amount: i.amount }).collect();
+                    if old.recipes_of(item_id).any(|r| same_recipe(r, recipe.output, &inputs)) {
+                        continue;
+                    }
+                    let id = Uuid::new_v4().to_string();
+                    // An item that already had recipes keeps the default the player chose.
+                    sqlx::query("INSERT INTO recipes (id, item_id, output, is_default, created_at) VALUES (?, ?, ?, ?, ?)")
+                        .bind(&id)
+                        .bind(item_id.to_string())
+                        .bind(recipe.output)
+                        .bind((recipe.default && !had_recipes) as i64)
+                        .bind(now)
+                        .execute(&mut *tx)
+                        .await?;
+                    for input in &inputs {
+                        sqlx::query("INSERT INTO recipe_details (id, recipe_id, item_id, input) VALUES (?, ?, ?, ?)")
+                            .bind(Uuid::new_v4().to_string())
+                            .bind(&id)
+                            .bind(input.item_id.to_string())
+                            .bind(input.amount)
+                            .execute(&mut *tx)
+                            .await?;
+                    }
+                    recipes += 1;
+                }
+            }
+
+            // A merge leaves the player's own inventory and plans as they are.
+            if merge_into.is_none()
+                && let Some(progress) = &file.progress
+            {
+                for owned in &progress.inventory {
+                    sqlx::query(
+                        "INSERT INTO inventories (id, item_id, amount) VALUES (?, ?, ?)
+                         ON CONFLICT (item_id) DO UPDATE SET amount = excluded.amount",
+                    )
+                    .bind(Uuid::new_v4().to_string())
+                    .bind(ids[&name_key(&owned.item)].to_string())
+                    .bind(owned.amount)
+                    .execute(&mut *tx)
+                    .await?;
+                }
+                for plan in &progress.plans {
+                    sqlx::query("INSERT INTO plans (id, item_id, target, note, created_at) VALUES (?, ?, ?, ?, ?)")
+                        .bind(Uuid::new_v4().to_string())
+                        .bind(ids[&name_key(&plan.item)].to_string())
+                        .bind(plan.target)
+                        .bind(plan.note.trim())
+                        .bind(now)
+                        .execute(&mut *tx)
+                        .await?;
+                }
+            }
+            tx.commit().await?;
+            anyhow::Ok(Imported { game, title, merged: merge_into.is_some(), items, recipes })
+        });
+
+        match &result {
+            Ok(_) => {
+                if let Some(old_id) = replace {
+                    let _ = std::fs::remove_dir_all(self.data_dir.join("images").join(old_id.to_string()));
+                }
+            }
+            Err(_) => {
+                for relative in written.into_inner() {
+                    self.remove_image(Some(relative));
+                }
+                if merge_into.is_none() {
+                    let _ = std::fs::remove_dir(self.data_dir.join("images").join(game.to_string()));
+                }
+            }
+        }
+        result
     }
 
     // ---- one game's data ----
@@ -481,6 +728,14 @@ impl Db {
     }
 }
 
+/// Whether an existing recipe makes the same amount from the same inputs.
+fn same_recipe(recipe: &Recipe, output: f64, inputs: &[Input]) -> bool {
+    let close = |a: f64, b: f64| (a - b).abs() < 1e-9;
+    close(recipe.output, output)
+        && recipe.inputs.len() == inputs.len()
+        && inputs.iter().all(|i| recipe.inputs.iter().any(|r| r.item_id == i.item_id && close(r.amount, i.amount)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -586,6 +841,168 @@ mod tests {
         db.delete_game(game).unwrap();
         assert!(db.games().unwrap().is_empty());
         assert!(!db.image_path(&stored).exists());
+    }
+
+    /// Hollowdeep: Torch = 1 Stick + 1 Coal makes 4, Coal has an icon, 5 Coal owned, a plan for Torches.
+    fn hollowdeep(dir: &Path, db: &Db) -> Uuid {
+        let game = db.add_game("Hollowdeep").unwrap();
+        let (stick, coal, torch) = (db.add_item(game, "Stick").unwrap(), db.add_item(game, "Coal").unwrap(), db.add_item(game, "Torch").unwrap());
+        db.add_recipe(torch, 4.0, &[Input { item_id: stick, amount: 1.0 }, Input { item_id: coal, amount: 1.0 }]).unwrap();
+        db.set_inventory(coal, 5.0).unwrap();
+        db.add_plan(torch, 24.0, "Light the east mine").unwrap();
+        let picture = dir.join("coal.png");
+        image::RgbaImage::from_pixel(128, 128, image::Rgba([10, 20, 30, 255])).save(&picture).unwrap();
+        db.set_item_icon(game, coal, &picture).unwrap();
+        db.set_game_thumbnail(game, &picture).unwrap();
+        game
+    }
+
+    fn id_of(data: &GameData, name: &str) -> Uuid {
+        data.items.iter().find(|i| i.name == name).unwrap_or_else(|| panic!("no item {name}")).id
+    }
+
+    fn exported(dir: &Path, db: &Db, game: Uuid, include_progress: bool) -> GameFile {
+        let path = dir.join("exported.zip");
+        db.export_game(game, include_progress, &path).unwrap();
+        GameFile::read(&path).unwrap()
+    }
+
+    #[test]
+    fn an_exported_game_imports_elsewhere_with_its_recipes_and_pictures_but_not_progress() {
+        let (dir, db) = db();
+        let game = hollowdeep(dir.path(), &db);
+        let file = exported(dir.path(), &db, game, false);
+        assert!(file.progress.is_none());
+
+        let (_other_dir, other) = super::tests::db();
+        let imported = other.import_game(&file, None).unwrap();
+        assert_eq!((imported.title.as_str(), imported.merged, imported.items, imported.recipes), ("Hollowdeep", false, 3, 1));
+        let data = other.load_game(imported.game).unwrap();
+        let (stick, coal, torch) = (id_of(&data, "Stick"), id_of(&data, "Coal"), id_of(&data, "Torch"));
+        let recipe = data.default_recipe(torch).unwrap();
+        assert_eq!(recipe.output, 4.0);
+        assert_eq!(recipe.inputs, vec![Input { item_id: stick, amount: 1.0 }, Input { item_id: coal, amount: 1.0 }]);
+        assert!(data.inventory.is_empty() && data.plans.is_empty());
+
+        // The pictures arrive in the new game's own folder, byte for byte.
+        let icon = data.item(coal).unwrap().icon.clone().unwrap();
+        assert!(icon.starts_with(&format!("images/{}/", imported.game)), "{icon}");
+        let original = db.load_game(game).unwrap().items.iter().find(|i| i.name == "Coal").unwrap().icon.clone().unwrap();
+        assert_eq!(std::fs::read(other.image_path(&icon)).unwrap(), std::fs::read(db.image_path(&original)).unwrap());
+        let thumbnail = other.games().unwrap()[0].thumbnail.clone().unwrap();
+        assert!(other.image_path(&thumbnail).exists());
+    }
+
+    #[test]
+    fn progress_travels_only_when_asked_for() {
+        let (dir, db) = db();
+        let game = hollowdeep(dir.path(), &db);
+        let file = exported(dir.path(), &db, game, true);
+        let (_other_dir, other) = super::tests::db();
+        let imported = other.import_game(&file, None).unwrap();
+        let data = other.load_game(imported.game).unwrap();
+        assert_eq!(data.owned(id_of(&data, "Coal")), 5.0);
+        assert_eq!((data.plans.len(), data.plans[0].target, data.plans[0].note.as_str()), (1, 24.0, "Light the east mine"));
+    }
+
+    #[test]
+    fn a_title_already_in_use_needs_a_decision_and_keep_both_numbers_the_new_game() {
+        let (dir, db) = db();
+        let game = hollowdeep(dir.path(), &db);
+        let file = exported(dir.path(), &db, game, false);
+        assert!(db.import_game(&file, None).unwrap_err().to_string().contains("already a game called Hollowdeep"));
+        assert_eq!(db.games().unwrap().len(), 1);
+
+        assert_eq!(db.import_game(&file, Some(OnClash::KeepBoth)).unwrap().title, "Hollowdeep (2)");
+        assert_eq!(db.import_game(&file, Some(OnClash::KeepBoth)).unwrap().title, "Hollowdeep (3)");
+        let titles: Vec<String> = db.games().unwrap().into_iter().map(|g| g.title).collect();
+        assert_eq!(titles, ["Hollowdeep", "Hollowdeep (2)", "Hollowdeep (3)"]);
+    }
+
+    #[test]
+    fn replace_discards_the_existing_game_and_its_progress() {
+        let (dir, db) = db();
+        let game = hollowdeep(dir.path(), &db);
+        let file = exported(dir.path(), &db, game, false);
+        // Changes made after the export are what Replace throws away.
+        let extra = db.add_item(game, "Lantern").unwrap();
+        db.set_inventory(extra, 2.0).unwrap();
+        let old_icon = db.load_game(game).unwrap().items.iter().find_map(|i| i.icon.clone()).unwrap();
+
+        let imported = db.import_game(&file, Some(OnClash::Replace)).unwrap();
+        let games = db.games().unwrap();
+        assert_eq!((games.len(), games[0].id, games[0].title.as_str()), (1, imported.game, "Hollowdeep"));
+        let data = db.load_game(imported.game).unwrap();
+        assert_eq!(data.items.len(), 3);
+        assert!(data.inventory.is_empty() && data.plans.is_empty());
+        assert!(!db.image_path(&old_icon).exists());
+        assert!(db.image_path(data.items.iter().find_map(|i| i.icon.as_ref()).unwrap()).exists());
+    }
+
+    #[test]
+    fn merge_adds_what_is_missing_and_changes_nothing_that_is_there() {
+        let (dir, db) = db();
+        let source = hollowdeep(dir.path(), &db);
+        // The file: Hollowdeep plus a Lantern, a second Torch recipe, and progress.
+        let resin = db.add_item(source, "Resin").unwrap();
+        let lantern = db.add_item(source, "Lantern").unwrap();
+        let data = db.load_game(source).unwrap();
+        let (stick, torch) = (id_of(&data, "Stick"), id_of(&data, "Torch"));
+        let cheap = db.add_recipe(torch, 2.0, &[Input { item_id: stick, amount: 1.0 }, Input { item_id: resin, amount: 1.0 }]).unwrap();
+        db.set_default_recipe(cheap).unwrap();
+        db.add_recipe(lantern, 1.0, &[Input { item_id: torch, amount: 1.0 }]).unwrap();
+        let file = exported(dir.path(), &db, source, true);
+
+        // The player's own game: the plain Hollowdeep, with its own progress and no pictures.
+        let (_mine_dir, mine) = super::tests::db();
+        let game = mine.add_game("hollowdeep").unwrap();
+        let (stick, coal, torch) = (mine.add_item(game, "Stick").unwrap(), mine.add_item(game, "coal").unwrap(), mine.add_item(game, "Torch").unwrap());
+        let own = mine.add_recipe(torch, 4.0, &[Input { item_id: coal, amount: 1.0 }, Input { item_id: stick, amount: 1.0 }]).unwrap();
+        mine.set_inventory(coal, 1.0).unwrap();
+
+        let imported = mine.import_game(&file, Some(OnClash::Merge)).unwrap();
+        assert_eq!((imported.game, imported.merged, imported.items, imported.recipes), (game, true, 2, 2));
+        let data = mine.load_game(game).unwrap();
+        assert_eq!(data.items.len(), 5);
+        // The identical Torch recipe is not doubled, and the player's default stays the default.
+        assert_eq!(data.recipes_of(torch).count(), 2);
+        assert_eq!(data.default_recipe(torch).unwrap().id, own);
+        // A new item's recipe arrives with its default.
+        assert!(data.default_recipe(id_of(&data, "Lantern")).is_some());
+        // The file's progress is ignored; the item that had no picture gets the file's.
+        assert_eq!(data.owned(coal), 1.0);
+        assert!(data.plans.is_empty());
+        assert!(data.item(coal).unwrap().icon.is_some());
+        assert_eq!(mine.games().unwrap()[0].title, "hollowdeep");
+
+        // Merging the same file again adds nothing.
+        let again = mine.import_game(&file, Some(OnClash::Merge)).unwrap();
+        assert_eq!((again.items, again.recipes), (0, 0));
+    }
+
+    #[test]
+    fn a_failed_import_leaves_nothing_behind() {
+        let (dir, db) = db();
+        let game = hollowdeep(dir.path(), &db);
+        let mut file = exported(dir.path(), &db, game, false);
+        // A file edited by hand into something the database refuses, past the reader's checks.
+        file.title = "Broken".into();
+        file.items[2].recipes[0].output = -1.0;
+        assert!(db.import_game(&file, None).is_err());
+        assert_eq!(db.games().unwrap().len(), 1);
+        let folders = std::fs::read_dir(dir.path().join("images")).unwrap().count();
+        assert_eq!(folders, 1, "only the first game's pictures remain");
+    }
+
+    #[test]
+    fn game_titles_are_unique_ignoring_case() {
+        let (_dir, db) = db();
+        let game = db.add_game("Hollowdeep").unwrap();
+        assert!(db.add_game(" hollowdeep ").is_err());
+        let other = db.add_game("Saltwind Isles").unwrap();
+        assert!(db.rename_game(other, "HOLLOWDEEP").is_err());
+        // A game may keep, or re-case, its own title.
+        db.rename_game(game, "hollowdeep").unwrap();
     }
 
     #[test]

@@ -8,10 +8,12 @@ mod requirements;
 mod tests;
 
 use std::collections::HashMap;
+use std::path::Path;
 use std::rc::Rc;
 
 use gpui_kit::assets::IconName as Lucide;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
+use gpui_kit::component::checkbox::Checkbox;
 use gpui_kit::component::dialog::{DialogAction, DialogClose, DialogFooter};
 use gpui_kit::component::input::{Input, InputEvent as FieldEvent, InputState};
 use gpui_kit::component::notification::Notification;
@@ -22,8 +24,9 @@ use gpui_kit::*;
 use uuid::Uuid;
 
 use crate::calc::{self, PlanProgress, Requirements};
-use crate::db::{Db, GameStats};
+use crate::db::{Db, GameStats, OnClash};
 use crate::domain::{Game, GameData, Input as RecipeInput};
+use crate::game_file::GameFile;
 
 /// The Graphite palette.
 pub mod pal {
@@ -148,6 +151,8 @@ pub struct Planner {
     recipe_input_amount: Entity<InputState>,
     /// Inputs of the recipe being composed on the Items page.
     recipe_draft: Vec<RecipeInput>,
+    /// The choice in the export dialog: whether inventory and plans go into the game file.
+    export_progress: bool,
     subs: Vec<Subscription>,
 }
 
@@ -229,6 +234,7 @@ impl Planner {
             recipe_input_item,
             recipe_input_amount,
             recipe_draft: Vec::new(),
+            export_progress: false,
             subs,
         };
         this.reload(window, cx);
@@ -448,6 +454,151 @@ impl Planner {
                     });
                     true
                 })
+        });
+    }
+
+    // ---- game files ----
+
+    /// Asks whether progress goes into the game file, then where to save it.
+    fn export_dialog(&mut self, id: Uuid, window: &mut Window, cx: &mut Context<Self>) {
+        let Some((game, _)) = self.games.iter().find(|(g, _)| g.id == id) else { return };
+        let title: SharedString = format!("Export {}", game.title).into();
+        self.export_progress = false;
+        let weak = cx.entity().downgrade();
+        window.open_dialog(cx, move |dialog, _, cx| {
+            let include = weak.upgrade().is_some_and(|planner| planner.read(cx).export_progress);
+            let (toggle, confirm) = (weak.clone(), weak.clone());
+            dialog
+                .title(title.clone())
+                .centered()
+                .child(
+                    v_flex()
+                        .gap(px(12.))
+                        .child(div().text_color(rgb(pal::MUTED)).child("The game file holds the game's items, recipes and pictures."))
+                        .child(Checkbox::new("export-progress").label("Include my progress (inventory and plans)").checked(include).on_change(move |on, window, cx| {
+                            let on = *on;
+                            let _ = toggle.update(cx, |this, _| this.export_progress = on);
+                            window.refresh();
+                        })),
+                )
+                .footer(
+                    DialogFooter::new()
+                        .child(DialogClose::new().trigger(|button| button.label("Cancel")))
+                        .child(DialogAction::new().child(Button::new("export-ok").primary().label("Export"))),
+                )
+                .on_ok(move |_, window, cx| {
+                    let _ = confirm.update(cx, |this, cx| this.pick_export_path(id, window, cx));
+                    true
+                })
+        });
+    }
+
+    fn pick_export_path(&mut self, id: Uuid, window: &mut Window, cx: &mut Context<Self>) {
+        let Some((game, _)) = self.games.iter().find(|(g, _)| g.id == id) else { return };
+        let name = format!("{}.zip", file_stem(&game.title));
+        let folder = dirs::download_dir().or_else(dirs::home_dir).unwrap_or_default();
+        let include_progress = self.export_progress;
+        let path = cx.prompt_for_new_path(&folder, Some(&name));
+        cx.spawn_in(window, async move |this, cx| {
+            if let Ok(Ok(Some(mut path))) = path.await {
+                if path.extension().is_none() {
+                    path.set_extension("zip");
+                }
+                let _ = this.update_in(cx, |this, window, cx| this.export_to(id, include_progress, &path, window, cx));
+            }
+        })
+        .detach();
+    }
+
+    fn export_to(&mut self, id: Uuid, include_progress: bool, path: &Path, window: &mut Window, cx: &mut Context<Self>) {
+        let result = self.db.export_game(id, include_progress, path);
+        if self.finish(result, window, cx).is_some() {
+            window.push_notification(Notification::success(format!("Exported to {}", path.display())), cx);
+        }
+    }
+
+    fn pick_game_file(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let paths = cx.prompt_for_paths(PathPromptOptions { files: true, directories: false, multiple: false, prompt: Some("Import".into()) });
+        cx.spawn_in(window, async move |this, cx| {
+            if let Ok(Ok(Some(paths))) = paths.await
+                && let Some(path) = paths.into_iter().next()
+            {
+                let _ = this.update_in(cx, |this, window, cx| this.import_path(&path, window, cx));
+            }
+        })
+        .detach();
+    }
+
+    /// Imports a game file, asking what to do when a game with its title already exists.
+    fn import_path(&mut self, path: &Path, window: &mut Window, cx: &mut Context<Self>) {
+        let clash = GameFile::read(path).and_then(|file| Ok((self.db.game_titled(&file.title)?.is_some(), file)));
+        match clash {
+            Ok((false, file)) => self.import(&file, None, window, cx),
+            Ok((true, file)) => self.import_clash_dialog(Rc::new(file), window, cx),
+            Err(e) => self.notify_error(&e, window, cx),
+        }
+    }
+
+    fn import(&mut self, file: &GameFile, on_clash: Option<OnClash>, window: &mut Window, cx: &mut Context<Self>) {
+        let result = self.db.import_game(file, on_clash);
+        if let Some(done) = self.finish(result, window, cx) {
+            let count = |n: usize, one: &str| if n == 1 { format!("1 {one}") } else { format!("{n} {one}s") };
+            let (items, recipes) = (count(done.items, "item"), count(done.recipes, "recipe"));
+            let message = if done.merged { format!("Merged into {}: {items} and {recipes} added", done.title) } else { format!("Imported {}: {items}, {recipes}", done.title) };
+            window.push_notification(Notification::success(message), cx);
+        }
+    }
+
+    fn import_clash_dialog(&mut self, file: Rc<GameFile>, window: &mut Window, cx: &mut Context<Self>) {
+        let title: SharedString = format!("A game called {} already exists", file.title).into();
+        let weak = cx.entity().downgrade();
+        window.open_dialog(cx, move |dialog, _, _| {
+            let choice = |id: &'static str, label: &'static str, kind: Kind, note: &'static str, on_clash: OnClash| {
+                let (weak, file) = (weak.clone(), file.clone());
+                h_flex().gap(px(12.)).child(
+                    button(id, label, kind, true)
+                        .w(px(104.))
+                        .flex_none()
+                        .on_click(move |_, window, cx| {
+                            window.close_dialog(cx);
+                            let _ = weak.update(cx, |this, cx| match on_clash {
+                                OnClash::Replace => this.confirm_replace(file.clone(), window, cx),
+                                _ => this.import(&file, Some(on_clash), window, cx),
+                            });
+                        })
+                        .test_support(),
+                )
+                .child(div().flex_1().min_w_0().text_size(px(13.)).text_color(rgb(pal::MUTED)).child(note))
+            };
+            dialog
+                .title(title.clone())
+                .w(px(580.))
+                .centered()
+                .child(
+                    v_flex()
+                        .gap(px(12.))
+                        .child(choice("import-replace", "Replace", Kind::Danger, "Deletes the existing game, including your inventory and plans, and puts this file in its place.", OnClash::Replace))
+                        .child(choice("import-merge", "Merge", Kind::Plain, "Adds the items, recipes and pictures the existing game lacks. Nothing is removed, and the file's inventory and plans are ignored.", OnClash::Merge))
+                        .child(choice("import-keep-both", "Keep both", Kind::Plain, "Imports the file as a separate game with a numbered title.", OnClash::KeepBoth)),
+                )
+                .footer(DialogFooter::new().child(DialogClose::new().trigger(|button| button.label("Cancel"))))
+        });
+    }
+
+    fn confirm_replace(&mut self, file: Rc<GameFile>, window: &mut Window, cx: &mut Context<Self>) {
+        let title: SharedString = format!("Replace {}?", file.title).into();
+        let description = if file.progress.is_some() {
+            "The existing game is deleted, and your inventory and plans are replaced by the ones in the file. This cannot be undone."
+        } else {
+            "The existing game is deleted and your inventory and plans are lost: this file carries none. This cannot be undone."
+        };
+        let weak = cx.entity().downgrade();
+        window.open_alert_dialog(cx, move |alert, _, _| {
+            let (weak, file) = (weak.clone(), file.clone());
+            alert.title(title.clone()).description(description).confirm().ok_text("Replace game").on_ok(move |_, window, cx| {
+                let _ = weak.update(cx, |this, cx| this.import(&file, Some(OnClash::Replace), window, cx));
+                true
+            })
         });
     }
 
@@ -841,6 +992,13 @@ pub fn section_title(title: &'static str, note: impl Into<SharedString>) -> Div 
         .items_baseline()
         .child(div().text_size(px(15.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(title))
         .child(div().text_size(px(13.)).text_color(rgb(pal::MUTED)).child(note.into()))
+}
+
+/// A game title as a file name: without the characters file systems refuse.
+fn file_stem(title: &str) -> String {
+    let stem: String = title.chars().map(|c| if c.is_control() || "/\\:*?\"<>|".contains(c) { '_' } else { c }).collect();
+    let stem = stem.trim().trim_matches('.');
+    if stem.is_empty() { "game".into() } else { stem.to_string() }
 }
 
 /// A stable colour for a game without a thumbnail, from its title.

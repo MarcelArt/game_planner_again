@@ -88,16 +88,19 @@ impl Planner {
                             .when(open, |el| el.child(pill("Open", pal::ACCENT_FILL, pal::ACCENT_TEXT))),
                     )
                     .child(h_flex().gap(px(6.)).child(count(stats.items, "items")).child(count(stats.recipes, "recipes")).child(count(stats.plans, "plans")))
+                    .child(button(("game-open", key(id)), "Open", Kind::Primary, true).on_click(cx.listener(move |this, _, window, cx| this.open_game(id, window, cx))))
                     .child(
                         h_flex()
                             .gap(px(6.))
-                            .child(button(("game-open", key(id)), "Open", Kind::Primary, true).flex_1().on_click(cx.listener(move |this, _, window, cx| this.open_game(id, window, cx))))
-                            .child(button(("game-rename", key(id)), "Rename", Kind::Plain, true).on_click(cx.listener(move |this, _, window, cx| this.rename_game_dialog(id, window, cx))))
+                            .child(button(("game-rename", key(id)), "Rename", Kind::Plain, true).flex_1().px(px(6.)).on_click(cx.listener(move |this, _, window, cx| this.rename_game_dialog(id, window, cx))))
                             .child(
                                 button(("game-thumb", key(id)), "Image", Kind::Plain, true)
+                                    .flex_1()
+                                    .px(px(6.))
                                     .on_click(cx.listener(move |this, _, window, cx| this.pick_image(ImageTarget::GameThumbnail(id), window, cx))),
                             )
-                            .child(button(("game-del", key(id)), "Delete", Kind::Danger, true).on_click(cx.listener(move |this, _, window, cx| this.confirm_delete_game(id, window, cx)))),
+                            .child(button(("game-export", key(id)), "Export", Kind::Plain, true).flex_1().px(px(6.)).on_click(cx.listener(move |this, _, window, cx| this.export_dialog(id, window, cx))))
+                            .child(button(("game-del", key(id)), "Delete", Kind::Danger, true).flex_1().px(px(6.)).on_click(cx.listener(move |this, _, window, cx| this.confirm_delete_game(id, window, cx)))),
                     )
                     .into_any_element()
             })
@@ -113,7 +116,10 @@ impl Planner {
             .child(div().text_size(px(15.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child("Add game"))
             .child(div().text_size(px(13.)).text_color(rgb(pal::MUTED)).child("A thumbnail is optional. Without one the game gets a colour of its own."))
             .child(field_box(Input::new(&self.new_game)))
-            .child(button("game-add", "Add game", Kind::Primary, true).on_click(cx.listener(|this, _, window, cx| this.add_game(window, cx))));
+            .child(button("game-add", "Add game", Kind::Primary, true).on_click(cx.listener(|this, _, window, cx| this.add_game(window, cx))))
+            .child(h_flex().h(px(18.)).child(div().flex_1().h(px(1.)).bg(rgb(pal::EDGE))))
+            .child(div().text_size(px(13.)).text_color(rgb(pal::MUTED)).child("Or bring in a game file that was exported from Game Planner."))
+            .child(button("game-import", "Import game", Kind::Plain, true).on_click(cx.listener(|this, _, window, cx| this.pick_game_file(window, cx))));
 
         let note = match self.games.len() {
             0 => "No games yet. Items, recipes, inventory and plans belong to one game each.".to_string(),
