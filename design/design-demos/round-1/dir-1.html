@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Game Planner — Checklist</title>
+<meta name="viewport" content="width=1440, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --side:#F2F3F5; --bg:#FFFFFF; --hover:#F4F5F7; --sel:#E3E6EB;
+  --ink:#1D2024; --ink2:#41464E; --meta:#646A74; --rule:#E3E5E9; --line:#D3D7DD;
+  --blue:#1463D8; --blue-tint:#E7EFFC; --idle:#8A909A;
+  --amber:#875000; --amber-bg:#FCEFD2; --short:#B0370F;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font:400 15px/1.35 "Instrument Sans","Inter",system-ui,sans-serif;color:var(--ink);
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+a{color:inherit;text-decoration:none}
+#app{display:grid;grid-template-columns:220px 1fr;width:100vw;height:100vh}
+
+/* ---------- sidebar ---------- */
+#side{background:var(--side);border-right:1px solid var(--rule);display:flex;flex-direction:column;padding:14px 10px 10px;overflow:hidden}
+.nav{display:flex;align-items:center;gap:10px;height:32px;padding:0 10px;border-radius:7px;font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap}
+.nav:hover{background:#E9EBEF}
+.nav.on{background:var(--sel);font-weight:600}
+.nav .lbl{flex:1;overflow:hidden;text-overflow:ellipsis}
+.nav .cnt{font-size:12px;color:var(--meta);font-weight:500}
+.nav .cnt.hot{background:var(--blue);color:#fff;border-radius:9px;padding:1px 7px;font-weight:600}
+.sgap{height:14px}
+.shead{display:flex;align-items:center;gap:10px;padding:0 10px;height:36px;font-weight:700;font-size:15px}
+.slabel{padding:0 10px;height:26px;display:flex;align-items:center;font-size:12px;font-weight:600;color:var(--meta)}
+.sfoot{margin-top:auto;border-top:1px solid var(--rule);padding-top:8px}
+.sfoot .nav{color:var(--meta)}
+.plus{width:16px;height:16px;position:relative;flex:none}
+.plus:before,.plus:after{content:"";position:absolute;background:currentColor;border-radius:1px}
+.plus:before{left:7px;top:2px;width:2px;height:12px}
+.plus:after{top:7px;left:2px;height:2px;width:12px}
+
+/* nav glyphs: circles and squares only */
+.g{width:16px;height:16px;flex:none;position:relative}
+.g-lib{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.g-lib b{background:#6F7682;border-radius:2px}
+.g-inv{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.g-inv b{background:#2A8F5B;border-radius:2px}
+.g-item{background:#D2921A;border-radius:4px}
+.g-item:after{content:"";position:absolute;inset:27%;background:#fff;border-radius:1px}
+.g-plan{border:2px solid #D14B28;border-radius:50%}
+.g-plan:after{content:"";position:absolute;inset:3px;background:#D14B28;border-radius:50%}
+.chev{width:16px;height:16px;position:relative;flex:none}
+.chev:after{content:"";position:absolute;left:6px;top:4px;width:7px;height:7px;border-left:2px solid var(--meta);border-bottom:2px solid var(--meta);transform:rotate(45deg)}
+
+/* ---------- the ring ---------- */
+.ring{--c:var(--blue);--s:20px;width:var(--s);height:var(--s);flex:none;border-radius:50%;border:2px solid var(--c);padding:2px;background:#fff;display:block;position:relative}
+.ring i{display:block;width:100%;height:100%;border-radius:50%;background:conic-gradient(var(--c) calc(var(--p,0)*1%),transparent 0)}
+.ring.idle{--c:var(--idle)}
+.ring.done{background:var(--c)}
+.ring.done i{background:none}
+.ring.done:after{content:"";position:absolute;left:50%;top:46%;width:28%;height:52%;border-right:2px solid #fff;border-bottom:2px solid #fff;transform:translate(-50%,-50%) rotate(45deg)}
+.ring.sm{--s:16px;padding:1.5px;border-width:1.5px}
+#side .ring{background:var(--side)} #side .ring.done{background:var(--c)}
+.ring.lg{--s:26px;border-width:2.5px;padding:2.5px}
+button.ring:not(:disabled):hover{box-shadow:0 0 0 4px var(--blue-tint)}
+button.ring:disabled{cursor:default}
+
+/* ---------- main column ---------- */
+#main{overflow-y:auto;overflow-x:hidden}
+.col{width:720px;margin:0 auto;padding:34px 0 40px}
+.head{display:flex;align-items:center;gap:12px}
+.head h1{font-size:27px;font-weight:700;letter-spacing:-.01em;line-height:1.15;flex:1}
+.sub{margin:6px 0 0 38px;color:var(--ink2);font-size:15px;max-width:682px}
+.sec+.line,.sec+button.line{margin-top:4px}
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin-top:22px;padding:0 0 6px;border-bottom:1px solid var(--rule)}
+.sec h2{font-size:15px;font-weight:700;color:var(--blue)}
+.sec span{font-size:13px;color:var(--meta)}
+
+.row{margin:0 -12px;padding:8px 12px;border-radius:9px;display:grid;grid-template-columns:32px 1fr auto;column-gap:0;align-items:center;transition:opacity .12s}
+.row:hover{background:var(--hover)}
+.row>.ring{grid-row:1;grid-column:1}
+.l1{grid-row:1;grid-column:2;display:flex;align-items:baseline;gap:8px;min-width:0;white-space:nowrap;min-height:30px;line-height:30px}
+.acts{grid-row:1;grid-column:3;display:flex;align-items:center;gap:8px}
+.l2{grid-row:2;grid-column:2/4;display:flex;justify-content:space-between;gap:20px;font-size:13px;color:var(--meta);line-height:20px;white-space:nowrap}
+.name{font-weight:600}
+.qty{font-weight:600}
+.x{color:var(--ink2);font-weight:500}
+.meta{color:var(--meta);font-size:13px}
+.meta b,.l2 b{font-weight:600;color:var(--ink2)}
+.state{font-size:13px;font-weight:600;color:var(--blue);margin-right:4px}
+.state.no{color:var(--meta);font-weight:500}
+.inputs{display:flex;gap:18px}
+.inp .short{color:var(--short);font-weight:600}
+.plans{overflow:hidden;text-overflow:ellipsis}
+.plans em{font-style:normal;color:var(--ink2)}
+.pill{font-size:12px;font-weight:600;line-height:18px;padding:0 8px;border-radius:9px;background:var(--amber-bg);color:var(--amber);align-self:center}
+.row.covered .name,.row.covered .qty{color:var(--meta);font-weight:500}
+#main.hl .row[data-plans]:not(.hit){opacity:.32}
+
+.btn{height:30px;padding:0 12px;border-radius:7px;font-size:13px;font-weight:600;border:1px solid var(--line);background:#fff;color:var(--ink);white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
+.btn:hover{background:var(--hover)}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.pri:hover{background:#0F55BE}
+.btn .n{background:rgba(255,255,255,.22);border-radius:8px;padding:0 6px;line-height:18px;font-size:12px}
+.btn:disabled{background:#F1F2F4;border-color:#F1F2F4;color:#7C828C;cursor:default}
+.btn:disabled .n{background:#E2E5E9}
+.btn.quiet{border-color:transparent;background:none;color:var(--meta);font-weight:500}
+.btn.quiet:hover{background:#ECEEF1;color:var(--short)}
+.field{height:30px;border:1px solid var(--line);border-radius:7px;padding:0 9px;font-size:14px;background:#fff;outline:none}
+.field:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-tint)}
+.field::placeholder{color:var(--meta);font-size:13px}
+.field.num{width:92px;text-align:right}
+
+/* item tile fallback: tinted square with initials */
+.tile{width:28px;height:28px;border-radius:7px;flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;letter-spacing:.01em;
+  background:hsl(var(--h) 48% 89%);color:hsl(var(--h) 55% 24%)}
+.tile.s{width:22px;height:22px;border-radius:6px;font-size:12px}
+.tile.big{width:36px;height:36px;border-radius:9px;font-size:14px}
+
+/* simple one-line rows (plans, items, inventory) */
+.line{margin:0 -12px;padding:0 12px;min-height:46px;border-radius:9px;display:flex;align-items:center;gap:12px;white-space:nowrap}
+.line:hover{background:var(--hover)}
+.line .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.line .note{color:var(--meta);margin-left:10px;font-size:14px}
+.prog{font-size:13px;color:var(--meta);min-width:92px;text-align:right}
+.prog b{color:var(--ink);font-weight:600;font-size:14px}
+.reached{font-size:13px;font-weight:600;color:var(--blue);min-width:92px;text-align:right}
+.addrow{margin-top:14px;padding-top:14px;border-top:1px solid var(--rule);display:flex;gap:8px;align-items:center}
+.addrow select.field{width:170px}
+.addrow .note-f{flex:1}
+
+/* items */
+.search{width:100%;height:36px;border-radius:9px;border:1px solid transparent;background:#EEF0F3;padding:0 12px;font-size:15px;outline:none;margin-top:18px}
+.search:focus{background:#fff;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-tint)}
+.search::placeholder{color:var(--meta)}
+button.line{width:calc(100% + 24px);text-align:left;font-size:15px}
+.open{margin:8px -16px 10px;padding:16px 16px 14px;border:1px solid var(--rule);border-radius:12px;background:#fff;box-shadow:0 8px 24px rgba(24,30,42,.10),0 1px 2px rgba(24,30,42,.06)}
+.open .top{display:flex;align-items:center;gap:12px}
+.open .top h3{font-size:18px;font-weight:700;flex:1}
+.open h4{font-size:13px;font-weight:600;color:var(--meta);margin:16px 0 4px}
+.rec{display:flex;align-items:center;gap:12px;min-height:44px;border-top:1px solid var(--rule);white-space:nowrap}
+.rec:first-of-type{border-top:0}
+.rec .f{flex:1;display:flex;align-items:center;gap:8px}
+.rec .f b{font-weight:600}
+.rec .op{color:var(--meta)}
+.rec .to{color:var(--meta);padding:0 4px}
+.rec .per{color:var(--meta);font-size:13px;margin-left:4px}
+.isdef{font-size:13px;font-weight:600;color:var(--blue);padding:0 12px}
+.used{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.chip{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px 0 5px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-weight:500;background:#fff}
+.chip:hover{background:var(--hover)}
+.empty{color:var(--meta);padding:18px 0;font-size:15px}
+
+/* inventory */
+.step{display:flex;align-items:center;gap:4px}
+.step button{width:30px;height:30px;border-radius:7px;border:1px solid var(--line);background:#fff;font-size:17px;font-weight:500;line-height:1;color:var(--ink2)}
+.step button:hover{background:var(--hover)}
+.step .field{width:76px;text-align:right;font-weight:600}
+.zero .field{color:var(--meta);font-weight:400}
+
+/* library */
+.game{margin:0 -12px;padding:12px;border-radius:11px;display:flex;align-items:center;gap:16px;width:calc(100% + 24px);text-align:left}
+.game:hover{background:var(--hover)}
+.thumb{width:104px;height:64px;border-radius:9px;flex:none;display:flex;align-items:flex-end;padding:7px 10px;font-size:22px;font-weight:700;letter-spacing:-.01em;
+  background:hsl(var(--h) 46% 88%);color:hsl(var(--h) 55% 26%);position:relative;overflow:hidden}
+.thumb:before{content:"";position:absolute;right:-14px;top:-14px;width:56px;height:56px;border-radius:50%;background:hsl(var(--h) 50% 80%)}
+.game .t{font-size:18px;font-weight:700}
+.game .b{color:var(--ink2);font-size:14px;margin-top:1px}
+.game .c{color:var(--meta);font-size:13px;margin-top:5px}
+.game .c b{color:var(--ink2);font-weight:600}
+.game .gp{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--meta);min-width:150px;justify-content:flex-end}
+</style>
+</head>
+<body>
+<div id="app"><aside id="side"></aside><main id="main"></main></div>
+<script src="../shared.js"></script>
+<script>
+(function () {
+  const $ = (s, r) => (r || document).querySelector(s);
+  const side = $('#side'), main = $('#main');
+  const f = GP.fmt;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const ROUTES = ['library', 'requirements', 'plans', 'items', 'inventory'];
+  const state = { route: 'requirements', item: 'torch', search: '', addGame: false };
+  const pl = (n, one, many) => `${f(n)} ${n === 1 ? one : (many || one + 's')}`;
+  const tile = (it, cls) => `<span class="tile ${cls || ''}" style="--h:${it.hue}">${GP.initials(it.name)}</span>`;
+  const ring = (pct, cls, attrs) => `<span class="ring ${cls || ''}" ${attrs || ''} style="--p:${Math.max(0, Math.min(100, pct)).toFixed(1)}"><i></i></span>`;
+  const planLabel = (p) => p.note || GP.item(p.item).name;
+  const recipeCount = () => GP.items().reduce((n, it) => n + GP.recipesOf(it.id).length, 0);
+
+  function plansFor(row) {
+    const parts = row.plans.map((p) => {
+      const own = p.item === row.item.id;
+      const t = `${GP.item(p.item).name}, target ${f(p.target)}${p.note ? ' — ' + p.note : ''}`;
+      return `<span title="${esc(t)}">${own ? `<em>${esc(planLabel(p))} (${f(p.target)})</em>` : esc(planLabel(p))}</span>`;
+    });
+    return `<span class="plans">for ${parts.join(', ')}</span>`;
+  }
+
+  /* ---------- sidebar ---------- */
+  function renderSide() {
+    const r = state.route;
+    let h = '';
+    if (r === 'library') {
+      h += `<div class="shead">Game Planner</div><div class="sgap"></div>
+        <a class="nav on" href="#library"><span class="g g-lib"><b></b><b></b><b></b><b></b></span><span class="lbl">Library</span><span class="cnt">${GP.games.length}</span></a>
+        <div class="sgap"></div><div class="slabel">Games</div>`;
+      GP.games.forEach((g) => {
+        h += `<a class="nav" ${g.id === GP.currentGame.id ? 'href="#requirements"' : ''}><span class="tile s" style="--h:${g.hue}">${esc(g.title[0])}</span><span class="lbl">${esc(g.title)}</span></a>`;
+      });
+      h += `<div class="sfoot"><a class="nav" href="#library" data-act="newgame"><span class="plus"></span><span class="lbl">Add game</span></a></div>`;
+    } else {
+      const req = GP.requirements(), plans = GP.plans();
+      const ready = req.craft.filter((c) => c.ready).length;
+      const g = GP.currentGame;
+      h += `<a class="nav" href="#library" style="color:var(--meta)"><span class="chev"></span><span class="lbl">Library</span></a>
+        <div class="shead"><span class="tile s" style="--h:${g.hue}">${esc(g.title[0])}</span>${esc(g.title)}</div>
+        <a class="nav ${r === 'requirements' ? 'on' : ''}" href="#requirements">${ring(25, 'sm')}<span class="lbl">Requirements</span>${ready ? `<span class="cnt hot" title="${pl(ready, 'craft')} ready now">${ready}</span>` : ''}</a>
+        <a class="nav ${r === 'plans' ? 'on' : ''}" href="#plans"><span class="g g-plan"></span><span class="lbl">Plans</span><span class="cnt">${plans.length}</span></a>
+        <a class="nav ${r === 'items' ? 'on' : ''}" href="#items"><span class="g g-item"></span><span class="lbl">Items</span><span class="cnt">${GP.items().length}</span></a>
+        <a class="nav ${r === 'inventory' ? 'on' : ''}" href="#inventory"><span class="g g-inv"><b></b><b></b><b></b><b></b></span><span class="lbl">Inventory</span></a>
+        <div class="sgap"></div><div class="slabel">Plans, oldest first</div>`;
+      plans.forEach((p) => {
+        h += `<a class="nav" href="#plans" data-plan="${p.id}" title="${esc(p.itemName)}: have ${f(p.assigned)} of ${f(p.target)}">
+          ${ring(p.assigned / p.target * 100, 'sm ' + (p.reached ? 'done' : p.assigned ? '' : 'idle'))}
+          <span class="lbl">${esc(planLabel(p))}</span></a>`;
+      });
+      h += `<div class="sfoot"><a class="nav" href="#plans" data-act="newplan"><span class="plus"></span><span class="lbl">New plan</span></a></div>`;
+    }
+    side.innerHTML = h;
+  }
+
+  /* ---------- requirements ---------- */
+  function gatherRow(g) {
+    const covered = g.missing <= 1e-9;
+    const ids = g.plans.map((p) => p.id).join(' ');
+    const whole = Math.ceil(g.missing - 1e-9);
+    if (covered) {
+      return `<div class="row covered" data-plans="${ids}">${ring(100, 'done idle')}
+        <div class="l1"><span class="name">${esc(g.item.name)}</span><span class="meta">covered by inventory, have ${f(g.have)} of ${f(g.need)}</span></div>
+        <div class="l2"><span></span>${plansFor(g)}</div></div>`;
+    }
+    const loop = g.loop ? `<span>${g.loop.map(esc).join(' → ')}, so it is gathered</span>` : '<span></span>';
+    return `<div class="row" data-plans="${ids}">
+      <button class="ring" data-gather-all="${g.item.id}" data-n="${whole}" title="Gathered all of it: add ${whole} to inventory" style="--p:${(g.have / g.need * 100).toFixed(1)}"><i></i></button>
+      <div class="l1"><span class="qty">${f(g.missing)}</span><span class="name">${esc(g.item.name)}</span>${g.loop ? '<span class="pill">Recipe loop</span>' : ''}<span class="meta">have ${f(g.have)} of ${f(g.need)}</span></div>
+      <div class="acts"><input class="field num" inputmode="decimal" placeholder="Gathered" aria-label="Amount of ${esc(g.item.name)} gathered" data-gather="${g.item.id}"><button class="btn" data-gather-add="${g.item.id}">Add</button></div>
+      <div class="l2">${loop}${plansFor(g)}</div></div>`;
+  }
+  function craftRow(c) {
+    const ids = c.plans.map((p) => p.id).join(' ');
+    if (c.crafts === 0) {
+      return `<div class="row covered" data-plans="${ids}">${ring(100, 'done idle')}
+        <div class="l1"><span class="name">${esc(c.item.name)}</span><span class="meta">covered by inventory, have ${f(c.have)} of ${f(c.need)}</span></div>
+        <div class="acts"><button class="btn" disabled>Craft 1</button><button class="btn" disabled>Craft all <span class="n">0</span></button></div>
+        <div class="l2"><span></span>${plansFor(c)}</div></div>`;
+    }
+    const st = c.canCraft >= c.crafts ? '<span class="state">Ready</span>'
+      : c.canCraft > 0 ? `<span class="state">${c.canCraft} of ${c.crafts} ready</span>`
+      : '<span class="state no">Not ready</span>';
+    const inputs = c.inputs.map((i) => {
+      const blocked = i.have + 1e-9 < i.perCraft;
+      const frac = Math.abs(i.perCraft - Math.round(i.perCraft)) > 1e-9 ? ` (${f(i.perCraft)} per craft)` : '';
+      return `<span class="inp" title="${f(i.perCraft)} ${esc(i.item.name)} per craft"><b>${f(i.total)}</b> ${esc(i.item.name)}${frac}, <span class="${blocked ? 'short' : ''}">have ${f(i.have)}</span></span>`;
+    }).join('');
+    const dis = c.canCraft > 0 ? '' : 'disabled';
+    return `<div class="row" data-plans="${ids}">
+      <button class="ring ${c.ready ? '' : 'idle'}" ${dis} data-craft="${c.item.id}" data-n="1" title="${c.ready ? 'Craft 1' : 'Not ready'}" style="--p:${(c.have / c.need * 100).toFixed(1)}"><i></i></button>
+      <div class="l1"><span class="name">${esc(c.item.name)}</span><span class="x">× ${pl(c.crafts, 'craft')}</span><span class="meta">makes ${f(c.makes)}${c.surplus > 1e-9 ? `, <b>surplus ${f(c.surplus)}</b>` : ''}</span></div>
+      <div class="acts">${st}<button class="btn" ${dis} data-craft="${c.item.id}" data-n="1">Craft 1</button><button class="btn pri" ${dis} data-craft="${c.item.id}" data-n="${c.canCraft}" title="Inventory covers ${pl(c.canCraft, 'craft')} now">Craft all <span class="n">${c.canCraft}</span></button></div>
+      <div class="l2"><span class="inputs">${inputs}</span>${plansFor(c)}</div></div>`;
+  }
+  function vRequirements() {
+    const req = GP.requirements(), plans = GP.plans();
+    const reached = plans.filter((p) => p.reached).length;
+    const toGather = req.gather.filter((g) => g.missing > 1e-9).length;
+    const crafts = req.craft.reduce((n, c) => n + c.crafts, 0);
+    const readyNow = req.craft.reduce((n, c) => n + c.canCraft, 0);
+    if (!plans.length) {
+      return `<div class="head">${ring(0, 'lg idle')}<h1>Requirements</h1></div>
+        <p class="sub">No plans yet. Add a plan and its requirements appear here.</p>`;
+    }
+    return `<div class="head">${ring(reached / plans.length * 100, 'lg', `title="${reached} of ${plans.length} plans reached"`)}<h1>Requirements</h1></div>
+      <p class="sub">Combined across ${pl(plans.length, 'plan')}, ${reached} reached. ${readyNow ? `Inventory covers ${pl(readyNow, 'craft')} right now.` : 'No craft is ready; gather first.'}</p>
+      <div class="sec"><h2>Gather</h2><span>${pl(toGather, 'raw material')} still missing</span></div>
+      ${req.gather.filter((g) => g.missing > 1e-9).concat(req.gather.filter((g) => g.missing <= 1e-9)).map(gatherRow).join('') || '<p class="empty">Nothing to gather.</p>'}
+      <div class="sec"><h2>Craft</h2><span>${pl(crafts, 'craft')}, inputs first</span></div>
+      ${req.craft.map(craftRow).join('') || '<p class="empty">Nothing to craft.</p>'}`;
+  }
+
+  /* ---------- plans ---------- */
+  function vPlans() {
+    const plans = GP.plans();
+    const open = plans.filter((p) => !p.reached), done = plans.filter((p) => p.reached);
+    const row = (p) => `<div class="line">
+      ${ring(p.assigned / p.target * 100, p.reached ? 'done' : p.assigned ? '' : 'idle')}
+      ${tile(GP.item(p.item))}
+      <span class="grow"><span class="qty">${f(p.target)}</span> <span class="name">${esc(p.itemName)}</span>${p.note ? `<span class="note">${esc(p.note)}</span>` : ''}</span>
+      ${p.reached ? '<span class="reached">Reached</span>' : `<span class="prog">have <b>${f(p.assigned)}</b> of ${f(p.target)}</span>`}
+      <button class="btn quiet" data-del="${p.id}" aria-label="Delete plan ${esc(planLabel(p))}">Delete</button></div>`;
+    return `<div class="head">${ring(plans.length ? done.length / plans.length * 100 : 0, 'lg')}<h1>Plans</h1></div>
+      <p class="sub">Inventory is assigned to the oldest plan first. A reached plan stays here until you delete it.</p>
+      <div class="sec"><h2>Not yet reached</h2><span>${pl(open.length, 'plan')}, oldest first</span></div>
+      ${open.map(row).join('') || '<p class="empty">Every plan is reached.</p>'}
+      ${done.length ? `<div class="sec"><h2>Reached</h2><span>${pl(done.length, 'plan')}</span></div>${done.map(row).join('')}` : ''}
+      <form class="addrow" id="addplan">
+        <select class="field" id="ap-item" aria-label="Item">${GP.items().map((i) => `<option value="${i.id}">${esc(i.name)}</option>`).join('')}</select>
+        <input class="field num" id="ap-target" inputmode="numeric" placeholder="Target" aria-label="Target">
+        <input class="field note-f" id="ap-note" placeholder="Note, for example what it is for" aria-label="Note">
+        <button class="btn pri" type="submit">Add plan</button>
+      </form>`;
+  }
+
+  /* ---------- items ---------- */
+  function itemDetail(it) {
+    const recs = GP.recipesOf(it.id), used = GP.usedIn(it.id);
+    const seen = new Set(), usedU = used.filter((u) => !seen.has(u.id) && seen.add(u.id));
+    let h = `<div class="open"><div class="top">${tile(it, 'big')}<h3>${esc(it.name)}</h3>
+      <span class="meta">${recs.length ? `Crafted, ${pl(recs.length, 'recipe')}` : 'Raw material'}, ${f(GP.inv(it.id))} in inventory</span></div>`;
+    if (recs.length) {
+      h += `<h4>${recs.length > 1 ? 'Recipes. The default recipe is the one Requirements uses.' : 'Recipe'}</h4>`;
+      recs.forEach((r) => {
+        h += `<div class="rec">
+          <button class="ring ${r.isDefault ? 'done' : 'idle'}" ${r.isDefault ? 'disabled' : ''} data-default="${r.id}" title="${r.isDefault ? 'Default recipe' : 'Make this the default recipe'}"><i></i></button>
+          <span class="f">${r.inputs.map((i) => `<span><b>${f(i.perCraft)}</b> ${esc(i.item.name)}</span>`).join('<span class="op">+</span>')}
+            <span class="to">→</span><span><b>${f(r.output)}</b> ${esc(it.name)}</span><span class="per">per craft</span></span>
+          ${r.isDefault ? '<span class="isdef">Default recipe</span>' : `<button class="btn" data-default="${r.id}">Make default</button>`}</div>`;
+      });
+    } else {
+      h += `<h4>No recipe</h4><div class="rec"><span class="f">A raw material can only be gathered.</span></div>`;
+    }
+    h += `<h4>Used in</h4><div class="used">${usedU.map((u) => `<button class="chip" data-item="${u.id}">${tile(u, 's')}${esc(u.name)}</button>`).join('') || '<span class="meta" style="font-size:14px">Not an input of any recipe.</span>'}</div></div>`;
+    return h;
+  }
+  function itemsList() {
+    const q = state.search.trim().toLowerCase();
+    const list = GP.items().filter((i) => !q || i.name.toLowerCase().includes(q));
+    if (!list.length) return `<p class="empty">No item matches “${esc(state.search)}”.</p>`;
+    return list.map((it) => {
+      if (it.id === state.item) return itemDetail(it);
+      const n = GP.recipesOf(it.id).length;
+      return `<button class="line" data-item="${it.id}">${tile(it)}<span class="grow name">${esc(it.name)}</span>
+        <span class="meta">${n ? `Crafted, ${pl(n, 'recipe')}` : 'Raw material'}</span></button>`;
+    }).join('');
+  }
+  function vItems() {
+    const items = GP.items(), raw = items.filter((i) => GP.isRaw(i.id)).length;
+    return `<div class="head"><span class="g g-item" style="width:24px;height:24px;border-radius:6px;margin:1px"></span><h1>Items</h1></div>
+      <p class="sub">${pl(raw, 'raw material')} and ${items.length - raw} crafted items, with ${pl(recipeCount(), 'recipe')}.</p>
+      <input class="search" id="search" placeholder="Search items" value="${esc(state.search)}" aria-label="Search items">
+      <div id="ilist" style="margin-top:10px">${itemsList()}</div>`;
+  }
+
+  /* ---------- inventory ---------- */
+  function vInventory() {
+    const items = GP.items();
+    const row = (it) => `<div class="line ${GP.inv(it.id) ? '' : 'zero'}">${tile(it)}<span class="grow name">${esc(it.name)}</span>
+      <span class="step"><button data-step="${it.id}" data-d="-1" aria-label="One less ${esc(it.name)}">−</button>
+      <input class="field" inputmode="decimal" value="${f(GP.inv(it.id))}" data-inv="${it.id}" aria-label="${esc(it.name)} owned">
+      <button data-step="${it.id}" data-d="1" aria-label="One more ${esc(it.name)}">+</button></span></div>`;
+    const raw = items.filter((i) => GP.isRaw(i.id)), made = items.filter((i) => !GP.isRaw(i.id));
+    const owned = items.filter((i) => GP.inv(i.id) > 0).length;
+    return `<div class="head"><span class="g g-inv" style="width:24px;height:24px;gap:3px;margin:1px"><b></b><b></b><b></b><b></b></span><h1>Inventory</h1></div>
+      <p class="sub">What you own in ${esc(GP.currentGame.title)}: ${owned} of ${items.length} items. Requirements recalculates as you edit.</p>
+      <div class="sec"><h2>Raw materials</h2><span>${raw.length} items</span></div>${raw.map(row).join('')}
+      <div class="sec"><h2>Crafted</h2><span>${made.length} items</span></div>${made.map(row).join('')}`;
+  }
+
+  /* ---------- library ---------- */
+  function vLibrary() {
+    const plans = GP.plans(), reached = plans.filter((p) => p.reached).length;
+    const rows = GP.games.map((g) => {
+      const cur = g.id === GP.currentGame.id;
+      const s = cur ? { items: GP.items().length, recipes: recipeCount(), plans: plans.length } : g.stats;
+      const prog = cur ? `${ring(plans.length ? reached / plans.length * 100 : 0)}<span>${reached} of ${plans.length} plans reached</span>`
+        : s.plans ? `${ring(0, 'idle')}<span>${pl(s.plans, 'plan')}</span>` : '<span>No plans yet</span>';
+      return `<button class="game" ${cur ? 'data-go="requirements"' : ''}>
+        <span class="thumb" style="--h:${g.hue}"><span style="position:relative">${esc(GP.initials(g.title))}</span></span>
+        <span style="flex:1;min-width:0"><div class="t">${esc(g.title)}</div><div class="b">${esc(g.blurb)}</div>
+        <div class="c"><b>${s.items}</b> items &nbsp; <b>${s.recipes}</b> recipes &nbsp; <b>${s.plans}</b> plans</div></span>
+        <span class="gp">${prog}</span></button>`;
+    }).join('');
+    const add = state.addGame
+      ? `<form class="addrow" id="addgame"><input class="field note-f" id="ag-title" placeholder="Game title" aria-label="Game title"><button class="btn pri" type="submit">Add game</button><button class="btn" type="button" data-act="cancelgame">Cancel</button></form>`
+      : '';
+    return `<div class="head"><span class="g g-lib" style="width:24px;height:24px;gap:3px;margin:1px"><b></b><b></b><b></b><b></b></span><h1>Library</h1>
+      <button class="btn" data-act="newgame"><span class="plus" style="width:14px;height:14px;transform:scale(.85)"></span>Add game</button></div>
+      <p class="sub">${pl(GP.games.length, 'game')}. Each game keeps its own items, recipes, inventory and plans.</p>
+      <div class="sec"><h2>Games</h2><span></span></div>
+      <div style="margin-top:6px">${rows}</div>${add}`;
+  }
+
+  /* ---------- render + events ---------- */
+  const views = { library: vLibrary, requirements: vRequirements, plans: vPlans, items: vItems, inventory: vInventory };
+  function render(keepScroll) {
+    const y = main.scrollTop;
+    renderSide();
+    main.classList.remove('hl');
+    main.innerHTML = `<div class="col">${views[state.route]()}</div>`;
+    main.scrollTop = keepScroll ? y : 0;
+  }
+  function route() {
+    const h = location.hash.slice(1);
+    state.route = ROUTES.includes(h) ? h : 'requirements';
+    render(false);
+    if (state.route === 'items') { const o = $('.open'); if (o) o.scrollIntoView({ block: 'nearest' }); }
+  }
+  function gatherAdd(id) {
+    const inp = $(`[data-gather="${id}"]`);
+    const n = parseFloat(String(inp.value).replace(',', '.'));
+    if (!(n > 0)) { inp.focus(); return; }
+    GP.addInv(id, n);
+  }
+
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-craft],[data-gather-add],[data-gather-all],[data-del],[data-default],[data-item],[data-step],[data-go],[data-act]');
+    if (!t || t.disabled) return;
+    const d = t.dataset;
+    if (d.craft) GP.craft(d.craft, +d.n);
+    else if (d.gatherAdd) gatherAdd(d.gatherAdd);
+    else if (d.gatherAll) GP.addInv(d.gatherAll, +d.n);
+    else if (d.del) GP.deletePlan(d.del);
+    else if (d.default) GP.setDefault(d.default);
+    else if (d.item) { state.item = d.item; render(true); }
+    else if (d.step) GP.addInv(d.step, +d.d);
+    else if (d.go) location.hash = d.go;
+    else if (d.act === 'newgame') { state.addGame = true; if (state.route === 'library') { e.preventDefault(); render(true); $('#ag-title').focus(); } }
+    else if (d.act === 'cancelgame') { state.addGame = false; render(true); }
+    else if (d.act === 'newplan') setTimeout(() => { const el = $('#ap-target'); if (el) el.focus(); }, 0);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.dataset.gather) gatherAdd(e.target.dataset.gather);
+    if (e.key === 'Enter' && e.target.dataset.inv) e.target.blur();
+  });
+  document.addEventListener('change', (e) => {
+    const id = e.target.dataset.inv;
+    if (id) GP.setInv(id, parseFloat(String(e.target.value).replace(',', '.')));
+  });
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'search') { state.search = e.target.value; $('#ilist').innerHTML = itemsList(); }
+  });
+  document.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (e.target.id === 'addplan') {
+      const n = parseFloat($('#ap-target').value);
+      if (!(n > 0)) { $('#ap-target').focus(); return; }
+      GP.addPlan($('#ap-item').value, n, $('#ap-note').value.trim());
+    } else if (e.target.id === 'addgame') {
+      const title = $('#ag-title').value.trim();
+      if (!title) { $('#ag-title').focus(); return; }
+      GP.games.push({ id: 'g' + Date.now(), title, blurb: 'New game', hue: (title.length * 47) % 360, stats: { items: 0, recipes: 0, plans: 0 } });
+      state.addGame = false; render(true);
+    }
+  });
+  /* hovering a plan in the sidebar shows which requirement rows serve it */
+  side.addEventListener('mouseover', (e) => {
+    const a = e.target.closest('[data-plan]');
+    if (!a || state.route !== 'requirements') return;
+    main.classList.add('hl');
+    main.querySelectorAll('.row[data-plans]').forEach((r) => r.classList.toggle('hit', r.dataset.plans.split(' ').includes(a.dataset.plan)));
+  });
+  side.addEventListener('mouseout', (e) => { if (e.target.closest('[data-plan]')) main.classList.remove('hl'); });
+
+  GP.on(() => render(true));
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+</body>
+</html>

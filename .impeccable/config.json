@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "tiny-text",
+        "value": "*",
+        "files": [
+          "design/design-demos/thumbs.html"
+        ],
+        "createdAt": "2026-11-13T18:49:00.733Z",
+        "reason": "agent: intentional 480x300 thumbnail sheet of six candidates, miniature by design; full mockups follow the 14px/4.5:1 rules"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          "design/design-demos/thumbs.html"
+        ],
+        "createdAt": "2026-11-13T18:49:00.776Z",
+        "reason": "agent: intentional 480x300 thumbnail sheet of six candidates, miniature by design; full mockups follow the 14px/4.5:1 rules"
+      },
+      {
+        "rule": "undersized-ui-text",
+        "value": "*",
+        "files": [
+          "design/design-demos/thumbs.html"
+        ],
+        "createdAt": "2026-11-13T18:49:14.249Z",
+        "reason": "agent: intentional 480x300 thumbnail sheet of six candidates, miniature by design; full mockups follow the 14px/4.5:1 rules"
+      }
+    ]
+  }
+}

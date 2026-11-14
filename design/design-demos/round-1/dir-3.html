@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Game Planner — Tiers</title>
+<meta name="viewport" content="width=1440">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EFEAE0;
+  --card:#F9F6EF;
+  --ink:#0E0E0E;
+  --mute:#5A554C;
+  --soft:#C7C0B1;
+  --red:#BF2C17;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--paper)}
+body{font-family:'Archivo','Helvetica Neue',Arial,sans-serif;font-size:14px;line-height:1.35;color:var(--ink);
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0}
+#app{width:100vw;height:100vh;min-width:1280px;display:flex;flex-direction:column}
+
+/* ---------- display type ---------- */
+.disp{font-weight:900;font-stretch:125%;letter-spacing:-0.02em;line-height:1}
+
+/* ---------- top bar ---------- */
+.top{height:60px;flex:none;display:flex;align-items:center;padding:0 28px;gap:24px;border-bottom:2px solid var(--ink)}
+.top .back{height:34px;padding:0 12px;border:1.5px solid var(--ink);font-weight:600;font-size:14px}
+.top .back:hover{background:var(--ink);color:var(--paper)}
+.top .game{font-size:26px}
+.nav{display:flex;height:100%;margin-left:16px}
+.nav a{display:flex;align-items:center;padding:0 16px;height:100%;font-size:15px;font-weight:600;color:var(--mute);
+  text-decoration:none;border-bottom:5px solid transparent;border-top:5px solid transparent}
+.nav a:hover{color:var(--ink)}
+.nav a.on{color:var(--ink);border-bottom-color:var(--ink);font-weight:800}
+.top .right{margin-left:auto;font-size:14px;color:var(--mute)}
+
+/* ---------- headline strip ---------- */
+.head{flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 14px;gap:32px;height:72px}
+.head h1{font-size:32px;font-weight:900;font-stretch:125%;letter-spacing:-0.025em;line-height:1}
+.head .side{font-size:14px;color:var(--mute);text-align:right;line-height:1.45}
+.head .side b{color:var(--ink);font-weight:700}
+.key{display:inline-flex;align-items:center;gap:8px;color:var(--red);font-weight:800}
+.key i{width:12px;height:12px;background:var(--red);display:inline-block}
+
+/* ---------- columns ---------- */
+.cols{flex:1;min-height:0;display:grid;gap:16px;padding:0 28px 0}
+.col{min-width:0;min-height:0;display:flex;flex-direction:column}
+.colhead{flex:none;border-top:2px solid var(--ink);padding:8px 0 10px;display:flex;justify-content:space-between;align-items:flex-start;height:56px}
+.colhead .t{font-size:16px;font-weight:900;font-stretch:112%;line-height:1.15}
+.colhead .s{font-size:12.5px;color:var(--mute);font-weight:500;margin-top:2px}
+.colhead .n{font-size:34px;font-weight:900;font-stretch:125%;line-height:.9;letter-spacing:-0.03em}
+.stack{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding-bottom:16px;scrollbar-width:none}
+.stack::-webkit-scrollbar{display:none}
+
+/* ---------- cards ---------- */
+.card{--fg:var(--ink);--line:var(--ink);background:var(--card);border:1.5px solid var(--line);padding:10px 12px 11px;color:var(--fg);
+  position:relative;cursor:pointer;flex:none}
+.card.cov{background:transparent;border-style:dashed;--fg:var(--mute)}
+.board.has-sel .card:not(.sel):not(.rel){--fg:var(--mute);--line:var(--soft);background:transparent}
+.card.sel{outline:2.5px solid var(--ink);outline-offset:-1px}
+.rel-tag{display:inline-block;font-size:12px;font-weight:800;background:var(--ink);color:var(--paper);padding:2px 7px;margin:-10px 0 8px -12px}
+.sel .rel-tag{background:var(--ink)}
+.big{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.big .num{font-size:38px;font-weight:900;font-stretch:125%;letter-spacing:-0.035em;line-height:.95}
+.big .num small{font-size:22px;font-weight:900;margin-right:2px;position:relative;top:-5px}
+.state{font-size:12.5px;font-weight:800;white-space:nowrap}
+.state.ready{color:var(--red);display:inline-flex;align-items:center;gap:6px}
+.state.ready i{width:10px;height:10px;background:var(--red)}
+.state.wait{color:var(--fg);border:1.5px solid var(--line);padding:1px 6px}
+.name{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:16px;font-weight:800;line-height:1.1}
+.sub{font-size:13.5px;margin-top:5px;color:var(--fg)}
+.sub .m{color:var(--mute)}
+.tile{flex:none;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;
+  font-stretch:75%;letter-spacing:0;border:1.5px solid var(--fg, var(--ink));color:var(--fg, var(--ink));background:transparent;line-height:1}
+.tile.made{background:var(--fg, var(--ink));color:var(--paper)}
+.tile.lg{width:40px;height:40px;font-size:16px}
+.tile.xl{width:72px;height:72px;font-size:30px;border-width:2px}
+
+table.inp{width:100%;border-collapse:collapse;margin-top:10px;border-top:1px solid var(--line)}
+table.inp th{font-size:12px;font-weight:600;color:var(--mute);text-align:right;padding:5px 0 1px}
+table.inp th:first-child{text-align:left}
+table.inp td{font-size:14px;text-align:right;padding:2px 0;width:42px;font-weight:500}
+table.inp td:first-child{text-align:left;width:auto;font-weight:600}
+table.inp td.short{font-weight:900}
+.why{font-size:13px;font-weight:600;margin-top:7px}
+
+.serves{display:flex;align-items:center;gap:5px;margin-top:10px;font-size:12.5px;color:var(--mute);font-weight:600;flex-wrap:wrap}
+.pn{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--fg);color:var(--fg);
+  font-size:12px;font-weight:900;line-height:1}
+.servelist{margin-top:8px;border-top:1px solid var(--line);padding-top:6px}
+.servelist div{display:flex;gap:7px;align-items:baseline;font-size:13px;padding:1.5px 0;white-space:nowrap;overflow:hidden}
+.servelist div .pn{flex:none;align-self:center}
+.servelist div span.nt{color:var(--mute);overflow:hidden;text-overflow:ellipsis}
+.servelist div b{font-weight:700}
+
+.btns{display:flex;gap:6px;margin-top:11px}
+.btn{height:34px;padding:0 10px;border:1.5px solid var(--ink);font-size:13.5px;font-weight:700;white-space:nowrap;background:var(--card);color:var(--ink)}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn.go{background:var(--red);border-color:var(--red);color:#fff;flex:1}
+.btn.go:hover{background:var(--ink);border-color:var(--ink)}
+.btn.blk{background:var(--ink);color:var(--paper)}
+.btn.blk:hover{background:var(--paper);color:var(--ink)}
+.btn:disabled{border-color:var(--soft);color:var(--mute);background:transparent;cursor:default;flex:1}
+.btns .btn:first-child{flex:none}
+.field{display:flex;margin-top:8px}
+.field input{flex:1;min-width:0;height:34px;border:1.5px solid var(--ink);border-right:0;background:#fff;padding:0 9px;font-size:14px;font-weight:600;outline:0;color:var(--ink)}
+.field input::placeholder{color:var(--mute);font-weight:500}
+.field input:focus{background:#fff;box-shadow:inset 0 -3px 0 var(--ink)}
+.looptag{display:inline-block;background:var(--ink);color:var(--paper);font-size:12px;font-weight:800;padding:2px 7px}
+.loop{margin-top:8px;font-size:13px;line-height:1.35}
+.loop p{margin-top:4px}
+.big .serves{margin:0;align-self:center}
+
+/* plan cards */
+.plan .row1{display:flex;align-items:center;gap:8px}
+.plan .row1 .nm{font-size:16px;font-weight:800;flex:1;min-width:0}
+.plan .pn{width:22px;height:22px;font-size:12.5px;background:var(--fg);color:var(--paper)}
+.plan.cov .pn{background:transparent;color:var(--fg)}
+.plan .amt{display:flex;align-items:baseline;gap:5px;flex:none}
+.plan .amt .a{font-size:24px;font-weight:900;font-stretch:125%;letter-spacing:-0.03em;line-height:1}
+.plan .amt .of{font-size:13.5px;color:var(--mute);font-weight:600}
+.plan .note{font-size:13.5px;margin-top:6px;display:flex;justify-content:space-between;gap:8px}
+.bar{height:8px;border:1.5px solid var(--fg, var(--ink));margin-top:8px;background:transparent}
+.bar i{display:block;height:100%;background:var(--fg, var(--ink))}
+
+/* ---------- generic list rows (plans, items, inventory) ---------- */
+.rows{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;padding-bottom:24px}
+.rows::-webkit-scrollbar{display:none}
+.r{display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--soft);min-height:54px;padding:8px 0}
+.r .nm{font-size:16px;font-weight:800}
+.r .mt{font-size:13.5px;color:var(--mute)}
+.r .grow{flex:1;min-width:0}
+.r .numeral{width:40px;font-size:30px;font-weight:900;font-stretch:125%;letter-spacing:-0.03em;line-height:1}
+.tagk{font-size:12.5px;font-weight:800;border:1.5px solid var(--ink);padding:2px 7px;white-space:nowrap}
+.tagk.solid{background:var(--ink);color:var(--paper)}
+.tagk.dash{border-style:dashed;color:var(--mute);border-color:var(--mute)}
+
+.form label{display:block;font-size:13px;font-weight:700;margin:14px 0 5px}
+.form input,.form select,.search{width:100%;height:38px;border:1.5px solid var(--ink);background:#fff;padding:0 10px;font-size:14px;font-weight:600;outline:0;border-radius:0}
+.form input:focus,.form select:focus,.search:focus,.amt-in:focus{box-shadow:inset 0 -3px 0 var(--ink)}
+.form .btn{margin-top:18px;height:40px;width:100%;font-size:14.5px}
+.form p{font-size:13.5px;color:var(--mute);margin-top:14px;line-height:1.45}
+
+/* items */
+.irow{display:flex;align-items:center;gap:10px;width:100%;height:42px;padding:0 8px;border-bottom:1px solid var(--soft);text-align:left}
+.irow:hover{background:var(--card)}
+.irow.on{background:var(--ink);color:var(--paper);--fg:var(--paper)}
+.irow.on .tile.made{background:var(--paper);color:var(--ink)}
+.irow .nm{flex:1;font-size:15px;font-weight:700}
+.irow .k{font-size:12.5px;font-weight:600;opacity:.85}
+.ihead{display:flex;align-items:center;gap:18px;padding:4px 0 20px}
+.ihead h2{font-size:44px;font-weight:900;font-stretch:125%;letter-spacing:-0.03em;line-height:1}
+.ihead p{font-size:14px;color:var(--mute);margin-top:6px}
+.recipes{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.recipe{border:1.5px solid var(--ink);background:var(--card)}
+.recipe.other{border-color:var(--soft);background:transparent}
+.recipe .rh{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1.5px solid var(--ink);height:56px}
+.recipe.other .rh{border-bottom-color:var(--soft)}
+.recipe .rh b{font-size:16px;font-weight:900;font-stretch:112%}
+.recipe .body{display:grid;grid-template-columns:1fr 1fr}
+.recipe .half{padding:12px}
+.recipe .half + .half{border-left:1.5px solid var(--ink)}
+.recipe.other .half + .half{border-left-color:var(--soft)}
+.recipe .lbl{font-size:12.5px;font-weight:600;color:var(--mute);margin-bottom:8px}
+.recipe .line{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:15px;font-weight:700}
+.recipe .line .q{width:58px;font-size:24px;font-weight:900;font-stretch:125%;letter-spacing:-0.03em;line-height:1}
+.used{margin-top:26px}
+.sect{border-top:2px solid var(--ink);padding:8px 0 10px;font-size:16px;font-weight:900;font-stretch:112%;display:flex;justify-content:space-between;align-items:baseline}
+.sect span{font-size:12.5px;color:var(--mute);font-weight:500;font-stretch:100%}
+
+/* inventory */
+.step{width:34px;height:34px;border:1.5px solid var(--ink);font-size:18px;font-weight:800;line-height:1;background:var(--card)}
+.step:hover{background:var(--ink);color:var(--paper)}
+.amt-in{width:92px;height:34px;border:1.5px solid var(--ink);border-left:0;border-right:0;background:#fff;text-align:right;padding:0 10px;font-size:16px;font-weight:800;outline:0;border-radius:0}
+.zero .nm,.zero .amt-in{color:var(--mute)}
+.zero .tile{--fg:var(--mute)}
+
+/* library */
+.gcard{border:1.5px solid var(--ink);background:var(--card);cursor:pointer;display:flex;flex-direction:column}
+.gcard:hover{outline:2.5px solid var(--ink);outline-offset:-1px}
+.thumb{height:250px;background:var(--ink);color:var(--paper);overflow:hidden;position:relative}
+.thumb span{position:absolute;left:14px;bottom:-34px;font-size:250px;font-weight:900;font-stretch:125%;letter-spacing:-0.06em;line-height:1}
+.gcard .info{padding:16px 16px 18px}
+.gcard h2{font-size:26px;font-weight:900;font-stretch:125%;letter-spacing:-0.025em;line-height:1.05}
+.gcard p{font-size:14px;color:var(--mute);margin-top:5px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);margin-top:18px;border-top:1px solid var(--ink)}
+.stats div{padding-top:9px}
+.stats b{display:block;font-size:30px;font-weight:900;font-stretch:125%;letter-spacing:-0.03em;line-height:1}
+.stats span{font-size:13px;color:var(--mute);font-weight:600}
+.gcard .btn{margin:0 16px 16px;height:40px}
+.addgame{border:1.5px dashed var(--mute);padding:16px;display:flex;flex-direction:column;justify-content:flex-end;height:250px}
+.addgame p{font-size:14px;color:var(--mute);margin-bottom:14px;line-height:1.45}
+.addgame .btn{height:40px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="../shared.js"></script>
+<script>
+(function () {
+  const GP = window.GP, f = GP.fmt;
+  const app = document.getElementById('app');
+  const ROUTES = ['library', 'requirements', 'plans', 'items', 'inventory'];
+  const S = { sel: 'torch', item: 'torch', q: '' };
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const route = () => { const h = location.hash.slice(1); return ROUTES.includes(h) ? h : 'requirements'; };
+  const tile = (it, cls) => `<span class="tile ${GP.isRaw(it.id) ? '' : 'made'} ${cls || ''}">${esc(GP.initials(it.name))}</span>`;
+  const plural = (n, w, ws) => `${n} ${n === 1 ? w : (ws || w + 's')}`;
+  const recipeCount = () => GP.items().reduce((n, it) => n + GP.recipesOf(it.id).length, 0);
+
+  /* ---------------- shell ---------------- */
+  function top(r) {
+    if (r === 'library') {
+      return `<div class="top"><span class="game disp">Game Planner</span><span class="right">Pick a game to see what is left to gather and craft</span></div>`;
+    }
+    const tabs = [['requirements', 'Requirements'], ['plans', 'Plans'], ['items', 'Items'], ['inventory', 'Inventory']];
+    return `<div class="top">
+      <a class="back" href="#library" style="display:inline-flex;align-items:center;text-decoration:none;color:inherit">Library</a>
+      <span class="game disp">${esc(GP.currentGame.title)}</span>
+      <nav class="nav">${tabs.map(([k, l]) => `<a href="#${k}" class="${k === r ? 'on' : ''}">${l}</a>`).join('')}</nav>
+      <span class="right">${esc(GP.currentGame.blurb)}</span>
+    </div>`;
+  }
+
+  /* ---------------- requirements ---------------- */
+  function model() {
+    const req = GP.requirements(), plans = GP.plans();
+    const pnum = {}; plans.forEach((p, i) => { pnum[p.id] = i + 1; });
+    const byItem = {}; req.craft.forEach((c) => { byItem[c.item.id] = c; });
+    const depth = {};
+    const d = (id) => {
+      if (!byItem[id]) return 0;
+      if (depth[id] == null) depth[id] = 1 + Math.max(0, ...byItem[id].inputs.map((i) => d(i.item.id)));
+      return depth[id];
+    };
+    req.craft.forEach((c) => d(c.item.id));
+    const max = Math.max(0, ...Object.values(depth));
+    const steps = []; for (let i = 1; i <= max; i++) steps.push(req.craft.filter((c) => depth[c.item.id] === i));
+    return { req, plans, pnum, byItem, steps, max };
+  }
+
+  function relations(m) {
+    const rel = {}; const s = S.sel;
+    if (!s) return rel;
+    if (s.startsWith('plan:')) {
+      const pid = s.slice(5), n = m.pnum[pid];
+      [...m.req.gather, ...m.req.craft].forEach((row) => { if (row.plans.some((p) => p.id === pid)) rel[row.item.id] = `Serves plan ${n}`; });
+      return rel;
+    }
+    const name = GP.item(s).name;
+    const row = m.byItem[s] || m.req.gather.find((g) => g.item.id === s);
+    if (!row) return rel;
+    if (m.byItem[s]) m.byItem[s].inputs.forEach((i) => { rel[i.item.id] = `Input of ${name}`; });
+    m.req.craft.forEach((c) => { if (c.crafts > 0 && c.inputs.some((i) => i.item.id === s)) rel[c.item.id] = `Uses ${name}`; });
+    row.plans.forEach((p) => { rel['plan:' + p.id] = `Served by ${name}`; });
+    return rel;
+  }
+
+  function serves(row, m, open) {
+    if (open) {
+      return `<div class="servelist">${row.plans.map((p) => {
+        const it = GP.item(p.item);
+        return `<div><span class="pn">${m.pnum[p.id]}</span><b>${esc(it.name)} ${f(p.target)}</b><span class="nt">${esc(p.note || '')}</span></div>`;
+      }).join('')}</div>`;
+    }
+    return `<div class="serves">${plural(row.plans.length, 'Plan').replace(/^\d+ /, '')} ${row.plans.map((p) => `<span class="pn">${m.pnum[p.id]}</span>`).join('')}</div>`;
+  }
+
+  function cls(key, rel, extra) {
+    return `card ${extra || ''} ${S.sel === key ? 'sel' : ''} ${rel[key] ? 'rel' : ''}`;
+  }
+  const relTag = (key, rel) => (rel[key] || S.sel === key ? `<div><span class="rel-tag">${esc(rel[key] || 'Selected')}</span></div>` : '');
+
+  function gatherCard(g, m, rel) {
+    const id = g.item.id, open = S.sel === id;
+    if (g.missing <= 0 && !g.loop) {
+      return `<div class="${cls(id, rel, 'cov')}" data-sel="${id}">${relTag(id, rel)}
+        <div class="big"><span class="name" style="margin:0">${tile(g.item)}${esc(g.item.name)}</span><span class="state">Covered</span></div>
+        <div class="sub">Have ${f(g.have)}, need ${f(g.need)}</div>
+        ${open ? serves(g, m, true) : ''}
+      </div>`;
+    }
+    return `<div class="${cls(id, rel, g.missing <= 0 ? 'cov' : '')}" data-sel="${id}">${relTag(id, rel)}
+      <div class="big"><span class="num">${f(g.missing)}</span><span class="state" style="font-weight:600;color:var(--mute)">to gather</span></div>
+      <div class="name">${tile(g.item)}<span style="flex:1">${esc(g.item.name)}</span>${open ? '' : `<span class="serves" style="margin:0">${g.plans.map((p) => `<span class="pn">${m.pnum[p.id]}</span>`).join('')}</span>`}</div>
+      <div class="sub">Have ${f(g.have)} <span class="m">of ${f(g.need)} needed</span></div>
+      ${g.loop ? `<div class="loop"><span class="looptag">Recipe loop</span><p>${g.loop.map(esc).join(' → ')}, so it is gathered.</p></div>` : ''}
+      ${open ? serves(g, m, true) : ''}
+      <div class="field"><input type="number" min="0" step="any" placeholder="Gathered" data-gather="${id}" aria-label="Amount of ${esc(g.item.name)} gathered"><button class="btn" data-act="gather" data-id="${id}">Add</button></div>
+    </div>`;
+  }
+
+  function craftCard(c, m, rel) {
+    const id = c.item.id, open = S.sel === id;
+    if (c.crafts <= 0) {
+      return `<div class="${cls(id, rel, 'cov')}" data-sel="${id}">${relTag(id, rel)}
+        <div class="big"><span class="name" style="margin:0">${tile(c.item)}${esc(c.item.name)}</span><span class="state">Covered</span></div>
+        <div class="sub">Have ${f(c.have)}, need ${f(c.need)}</div>
+        ${open ? serves(c, m, true) : ''}
+      </div>`;
+    }
+    const blocking = c.inputs.filter((i) => i.have + 1e-9 < i.perCraft);
+    return `<div class="${cls(id, rel)}" data-sel="${id}">${relTag(id, rel)}
+      <div class="big"><span class="num"><small>×</small>${c.crafts}</span>
+        ${c.ready ? `<span class="state ready"><i></i>Ready</span>` : `<span class="state wait">Not ready</span>`}</div>
+      <div class="name">${tile(c.item)}${esc(c.item.name)}</div>
+      <div class="sub">Makes ${f(c.makes)}${c.surplus > 1e-9 ? `, <b>surplus ${f(c.surplus)}</b>` : ''}</div>
+      <table class="inp"><tr><th>Input</th><th>each</th><th>need</th><th>have</th></tr>
+        ${c.inputs.map((i) => `<tr><td>${esc(i.item.name)}</td><td>${f(i.perCraft)}</td><td>${f(i.total)}</td><td class="${i.have + 1e-9 < i.total ? 'short' : ''}"><span>${f(i.have)}</span></td></tr>`).join('')}
+      </table>
+      ${!c.ready && blocking.length ? `<div class="why">One craft needs ${blocking.map((b) => `${f(b.perCraft)} ${esc(b.item.name)}`).join(' and ')}</div>` : ''}
+      ${serves(c, m, open)}
+      <div class="btns">
+        <button class="btn" data-act="craft" data-id="${id}" data-n="1" ${c.canCraft > 0 ? '' : 'disabled'}>Craft 1</button>
+        <button class="btn ${c.canCraft > 0 ? 'go' : ''}" data-act="craft" data-id="${id}" data-n="${c.canCraft}" ${c.canCraft > 0 ? '' : 'disabled'}>Craft all ${c.canCraft}</button>
+      </div>
+    </div>`;
+  }
+
+  function planCard(p, m, rel) {
+    const key = 'plan:' + p.id, it = GP.item(p.item);
+    const pct = Math.min(100, (p.assigned / p.target) * 100);
+    return `<div class="${cls(key, rel, 'plan ' + (p.reached ? 'cov' : ''))}" data-sel="${key}">${relTag(key, rel)}
+      <div class="row1"><span class="pn">${m.pnum[p.id]}</span><span class="nm">${esc(it.name)}</span><span class="amt"><span class="a">${f(p.assigned)}</span><span class="of">of ${f(p.target)}</span></span></div>
+      <div class="note"><span>${esc(p.note || '')}</span>${p.reached ? '<span class="state">Reached</span>' : ''}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+    </div>`;
+  }
+
+  function requirements() {
+    const m = model();
+    if (S.sel) {
+      const exists = S.sel.startsWith('plan:') ? m.plans.some((p) => 'plan:' + p.id === S.sel)
+        : (m.byItem[S.sel] || m.req.gather.some((g) => g.item.id === S.sel));
+      if (!exists) S.sel = null;
+    }
+    const rel = relations(m);
+    const toCraft = m.req.craft.filter((c) => c.crafts > 0);
+    const ready = toCraft.filter((c) => c.ready).length;
+    const toGather = m.req.gather.filter((g) => g.missing > 0).length;
+    const reached = m.plans.filter((p) => p.reached).length;
+    const n = 2 + m.steps.length;
+    const headline = m.plans.length
+      ? `${plural(m.plans.length, 'plan')}, taken apart into ${plural(m.max, 'step')}.`
+      : 'No plans yet. Add a plan to see its requirements.';
+    return `<div class="head">
+        <h1>${headline}</h1>
+        <div class="side"><span class="key"><i></i>Ready to craft now: ${ready} of ${plural(toCraft.length, 'craft')}</span><br>
+          ${plural(toGather, 'raw material')} still to gather. Select a card to see what it consumes and the plans it serves.</div>
+      </div>
+      <div class="cols board ${S.sel ? 'has-sel' : ''}" style="grid-template-columns:repeat(${n},minmax(0,1fr))">
+        <div class="col"><div class="colhead"><div><div class="t">Gather</div><div class="s">Raw materials</div></div><div class="n">0</div></div>
+          <div class="stack" data-scroll="g">${m.req.gather.slice().sort((a, b) => (a.missing <= 0) - (b.missing <= 0)).map((g) => gatherCard(g, m, rel)).join('')}</div></div>
+        ${m.steps.map((rows, i) => `<div class="col"><div class="colhead"><div><div class="t">Craft</div><div class="s">${i === 0 ? 'From raw materials only' : `Needs step ${i} first`}</div></div><div class="n">${i + 1}</div></div>
+          <div class="stack" data-scroll="s${i}">${rows.map((c) => craftCard(c, m, rel)).join('')}</div></div>`).join('')}
+        <div class="col"><div class="colhead"><div><div class="t">Plans</div><div class="s">${reached} of ${m.plans.length} reached, oldest first</div></div></div>
+          <div class="stack" data-scroll="p">${m.plans.map((p) => planCard(p, m, rel)).join('')}</div></div>
+      </div>`;
+  }
+
+  /* ---------------- plans ---------------- */
+  function plansScreen() {
+    const plans = GP.plans(), reached = plans.filter((p) => p.reached).length;
+    return `<div class="head"><h1>${plural(plans.length, 'plan')}, ${reached} reached.</h1>
+        <div class="side">Inventory of an item is assigned to its plans oldest first.<br>A reached plan stays until you delete it.</div></div>
+      <div class="cols" style="grid-template-columns:minmax(0,1fr) 340px;gap:40px">
+        <div class="col"><div class="colhead"><div><div class="t">Plans</div><div class="s">Oldest first</div></div></div>
+          <div class="rows" data-scroll="pl">${plans.map((p, i) => {
+            const it = GP.item(p.item), pct = Math.min(100, (p.assigned / p.target) * 100);
+            return `<div class="r" style="min-height:76px;${p.reached ? '--fg:var(--mute);color:var(--mute)' : ''}">
+              <span class="numeral">${i + 1}</span>${tile(it, 'lg')}
+              <div style="width:230px"><div class="nm">${esc(it.name)}</div><div class="mt">${esc(p.note || 'No note')}</div></div>
+              <div style="width:120px"><div class="mt">Target</div><div class="nm">${f(p.target)}</div></div>
+              <div class="grow"><div class="mt" style="${p.reached ? '' : 'color:var(--ink)'}"><b>${f(p.assigned)}</b> of ${f(p.target)} in inventory</div><div class="bar" style="margin-top:6px"><i style="width:${pct}%"></i></div></div>
+              <div style="width:96px;text-align:right">${p.reached ? '<span class="tagk dash">Reached</span>' : ''}</div>
+              <button class="btn" data-act="delplan" data-id="${p.id}">Delete</button>
+            </div>`;
+          }).join('') || '<div class="r"><span class="mt">No plans yet.</span></div>'}</div></div>
+        <div class="col"><div class="colhead"><div><div class="t">Add plan</div><div class="s">A target amount of one item</div></div></div>
+          <div class="form">
+            <label for="np-item" style="margin-top:4px">Item</label>
+            <select id="np-item">${GP.items().map((it) => `<option value="${it.id}">${esc(it.name)}</option>`).join('')}</select>
+            <label for="np-target">Target</label><input id="np-target" type="number" min="1" value="1">
+            <label for="np-note">Note (optional)</label><input id="np-note" type="text" placeholder="What it is for">
+            <button class="btn blk" data-act="addplan">Add plan</button>
+            <p>Several plans may name the same item. Their targets add up in the requirements.</p>
+          </div></div>
+      </div>`;
+  }
+
+  /* ---------------- items ---------------- */
+  function itemRows() {
+    const q = S.q.trim().toLowerCase();
+    const list = GP.items().filter((it) => it.name.toLowerCase().includes(q));
+    return list.map((it) => `<button class="irow ${it.id === S.item ? 'on' : ''}" data-act="pick" data-id="${it.id}">${tile(it)}<span class="nm">${esc(it.name)}</span><span class="k">${GP.isRaw(it.id) ? 'Raw material' : 'Crafted'}</span></button>`).join('')
+      || `<div class="r"><span class="mt">No item matches "${esc(S.q)}".</span></div>`;
+  }
+  function itemsScreen() {
+    const all = GP.items(), it = GP.item(S.item), recs = GP.recipesOf(it.id), used = GP.usedIn(it.id);
+    const raw = all.filter((x) => GP.isRaw(x.id)).length;
+    recs.sort((a, b) => b.isDefault - a.isDefault);
+    const recHtml = recs.map((r) => `<div class="recipe ${r.isDefault ? '' : 'other'}">
+        <div class="rh"><b>${r.isDefault ? 'Default recipe' : 'Other recipe'}</b>
+          ${r.isDefault ? (recs.length > 1 ? '<span class="tagk solid">Used in the calculation</span>' : '<span class="mt" style="font-size:13px;color:var(--mute)">Only recipe</span>') : `<button class="btn" data-act="setdef" data-id="${r.id}">Make default</button>`}</div>
+        <div class="body"><div class="half"><div class="lbl">Inputs per craft</div>
+            ${r.inputs.map((i) => `<div class="line"><span class="q">${f(i.perCraft)}</span>${tile(i.item)}${esc(i.item.name)}</div>`).join('')}</div>
+          <div class="half"><div class="lbl">Output per craft</div><div class="line"><span class="q">${f(r.output)}</span>${tile(it)}${esc(it.name)}</div></div></div>
+      </div>`).join('');
+    return `<div class="head"><h1>${all.length} items, ${plural(recipeCount(), 'recipe')}.</h1>
+        <div class="side">${raw} raw materials, ${all.length - raw} crafted items.<br>The default recipe is the one the requirements use.</div></div>
+      <div class="cols" style="grid-template-columns:320px minmax(0,1fr) 260px;gap:32px">
+        <div class="col"><div class="colhead" style="height:auto;padding-bottom:10px;display:block">
+            <input class="search" id="search" type="search" placeholder="Search items" value="${esc(S.q)}" aria-label="Search items"></div>
+          <div class="rows" id="itemlist" data-scroll="il" style="border-top:1px solid var(--soft)">${itemRows()}</div></div>
+        <div class="col"><div class="colhead"><div><div class="t">${GP.isRaw(it.id) ? 'Raw material' : 'Recipes'}</div><div class="s">${GP.isRaw(it.id) ? 'No recipe' : `${plural(recs.length, 'way')} to make it, inputs on the left, output on the right`}</div></div>
+            <button class="btn">Add recipe</button></div>
+          <div class="rows">
+            <div class="ihead">${tile(it, 'xl')}<div><h2>${esc(it.name)}</h2><p>${GP.isRaw(it.id) ? 'Raw material' : 'Crafted item'}, ${f(GP.inv(it.id))} in inventory</p></div></div>
+            ${recs.length ? `<div class="recipes">${recHtml}</div>` : `<div class="recipe other"><div class="half" style="padding:16px;font-size:15px">This item has no recipe, so it can only be gathered. Add a recipe to make it a crafted item.</div></div>`}
+          </div></div>
+        <div class="col"><div class="colhead"><div><div class="t">Used in</div><div class="s">Recipes that take it as an input</div></div></div>
+          <div class="rows">${used.length ? [...new Map(used.map((u) => [u.id, u])).values()].map((u) => `<button class="irow" data-act="pick" data-id="${u.id}" style="padding:0">${tile(u)}<span class="nm">${esc(u.name)}</span></button>`).join('')
+            : '<div class="r"><span class="mt">Not an input of any recipe.</span></div>'}</div></div>
+      </div>`;
+  }
+
+  /* ---------------- inventory ---------------- */
+  function invRow(it) {
+    const a = GP.inv(it.id);
+    return `<div class="r ${a > 0 ? '' : 'zero'}">${tile(it, 'lg')}<span class="nm grow">${esc(it.name)}</span>
+      <div style="display:flex"><button class="step" data-act="inv" data-id="${it.id}" data-d="-1" aria-label="One less ${esc(it.name)}">−</button><input class="amt-in" type="number" min="0" step="any" value="${f(a)}" data-inv="${it.id}" aria-label="${esc(it.name)} owned"><button class="step" data-act="inv" data-id="${it.id}" data-d="1" aria-label="One more ${esc(it.name)}">+</button></div></div>`;
+  }
+  function inventoryScreen() {
+    const all = GP.items(), owned = all.filter((it) => GP.inv(it.id) > 0).length;
+    const raw = all.filter((it) => GP.isRaw(it.id)), made = all.filter((it) => !GP.isRaw(it.id));
+    const half = Math.ceil(made.length / 2);
+    const col = (t, s, list) => `<div class="col"><div class="colhead"><div><div class="t">${t}</div><div class="s">${s}</div></div></div><div class="rows">${list.map(invRow).join('')}</div></div>`;
+    return `<div class="head"><h1>${all.length} items, ${owned} owned.</h1>
+        <div class="side">The amount of each item you own in ${esc(GP.currentGame.title)}.<br>Crafting and gathering on Requirements change these amounts.</div></div>
+      <div class="cols" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:40px">
+        ${col('Raw materials', `${raw.length} items, gathered`, raw)}
+        <div class="col"><div class="colhead"><div><div class="t">Crafted items</div><div class="s">${made.length} items with a recipe</div></div></div>
+          <div class="rows" style="display:grid;grid-template-columns:1fr 1fr;column-gap:40px;align-content:start"><div>${made.slice(0, half).map(invRow).join('')}</div><div>${made.slice(half).map(invRow).join('')}</div></div></div>
+      </div>`;
+  }
+
+  /* ---------------- library ---------------- */
+  function libraryScreen() {
+    const cur = { items: GP.items().length, recipes: recipeCount(), plans: GP.plans().length };
+    return `<div class="head"><h1>${plural(GP.games.length, 'game')}.</h1><div class="side">Every item, recipe, plan and inventory belongs to one game.</div></div>
+      <div class="cols" style="grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;align-content:start">
+        ${GP.games.map((g) => {
+          const st = g.stats || cur;
+          return `<div class="col"><div class="gcard" data-act="open" data-id="${g.id}">
+            <div class="thumb"><span style="${GP.initials(g.title).length > 1 ? 'font-size:176px;bottom:-22px' : ''}">${esc(GP.initials(g.title))}</span></div>
+            <div class="info"><h2>${esc(g.title)}</h2><p>${esc(g.blurb)}</p>
+              <div class="stats"><div><b>${st.items}</b><span>Items</span></div><div><b>${st.recipes}</b><span>Recipes</span></div><div><b>${st.plans}</b><span>${st.plans === 1 ? 'Plan' : 'Plans'}</span></div></div></div>
+            <button class="btn ${g.id === GP.currentGame.id ? 'blk' : ''}">Open ${esc(g.title)}</button>
+          </div></div>`;
+        }).join('')}
+        <div class="col"><div class="addgame"><p>A game starts empty. Add its items and recipes, then plan what you want to own.</p><button class="btn blk">Add game</button></div></div>
+      </div>`;
+  }
+
+  /* ---------------- render + events ---------------- */
+  const SCREENS = { library: libraryScreen, requirements, plans: plansScreen, items: itemsScreen, inventory: inventoryScreen };
+  let last = null;
+  function render() {
+    const r = route(), keep = {};
+    if (last === r) app.querySelectorAll('[data-scroll]').forEach((el) => { keep[el.dataset.scroll] = el.scrollTop; });
+    app.innerHTML = top(r) + SCREENS[r]();
+    app.querySelectorAll('[data-scroll]').forEach((el) => { if (keep[el.dataset.scroll]) el.scrollTop = keep[el.dataset.scroll]; });
+    last = r;
+  }
+
+  function gather(id) {
+    const el = app.querySelector(`[data-gather="${id}"]`), v = parseFloat(el.value);
+    if (v > 0) GP.addInv(id, v);
+  }
+
+  app.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-act]');
+    if (a) {
+      const { act, id } = a.dataset;
+      if (act === 'craft') GP.craft(id, +a.dataset.n);
+      else if (act === 'gather') gather(id);
+      else if (act === 'delplan') GP.deletePlan(id);
+      else if (act === 'addplan') {
+        const t = parseFloat(document.getElementById('np-target').value);
+        if (t > 0) GP.addPlan(document.getElementById('np-item').value, t, document.getElementById('np-note').value.trim());
+      } else if (act === 'pick') { S.item = id; render(); }
+      else if (act === 'setdef') GP.setDefault(id);
+      else if (act === 'inv') GP.setInv(id, GP.inv(id) + (+a.dataset.d));
+      else if (act === 'open') { if (id === GP.currentGame.id) location.hash = '#requirements'; }
+      return;
+    }
+    if (route() !== 'requirements' || e.target.closest('input')) return;
+    const c = e.target.closest('[data-sel]');
+    const next = c ? (S.sel === c.dataset.sel ? null : c.dataset.sel) : null;
+    if (next !== S.sel && (c || e.target.closest('.board'))) { S.sel = next; render(); }
+  });
+  app.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.dataset.gather) gather(e.target.dataset.gather);
+  });
+  app.addEventListener('change', (e) => {
+    if (e.target.dataset.inv) GP.setInv(e.target.dataset.inv, e.target.value);
+  });
+  app.addEventListener('input', (e) => {
+    if (e.target.id === 'search') { S.q = e.target.value; document.getElementById('itemlist').innerHTML = itemRows(); }
+  });
+
+  GP.on(render);
+  window.addEventListener('hashchange', render);
+  render();
+})();
+</script>
+</body>
+</html>

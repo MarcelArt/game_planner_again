@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Game Planner — Rows</title>
+<meta name="viewport" content="width=1440, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#0f1a2c; --side:#16233b; --side-2:#131f35;
+  --bar:#212a49; --bar-2:#1c2542; --edge:#303a5e; --bar-dark:#121b2e; --edge-dark:#232d47;
+  --well:#0b1422; --well-edge:#1d2740;
+  --text:#ffffff; --soft:#d5dcec; --muted:#9fb0cc;
+  --violet:#8b6dff; --violet-fill:#5a3bd0; --violet-soft:#2c2a63;
+  --gold:#c9a45c; --amber:#f2bf62;
+  --red:#e11d48; --slate:#55627f; --green:#2f7d62; --green-text:#8fe0bd;
+  --raw-a:#4d6a96; --raw-b:#3c5479; --made-a:#6f5ea6; --made-b:#57488a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--page)}
+body{font-family:Inter,"Segoe UI",system-ui,sans-serif;font-size:14px;font-weight:500;color:var(--text);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{cursor:default}
+#app{width:100vw;height:100vh;display:flex}
+
+/* ---------- sidebar ---------- */
+.side{width:224px;flex:none;background:linear-gradient(180deg,var(--side),var(--side-2));display:flex;flex-direction:column;padding:22px 20px 16px}
+.chip{align-self:center;display:flex;align-items:center;gap:8px;height:30px;padding:0 14px;border-radius:15px;background:#0e1829;border:1px solid #202b45;font-weight:700;font-size:14px;color:var(--soft)}
+.chip i{width:9px;height:9px;transform:rotate(45deg);background:var(--gold);border-radius:1px}
+.brand{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px 0 20px;font-weight:800;font-size:19px;letter-spacing:-.2px}
+.brand .mark{position:relative;width:26px;height:26px}
+.brand .mark b{position:absolute;width:17px;height:17px;border-radius:5px}
+.brand .mark b:first-child{left:0;top:0;background:var(--violet-fill)}
+.brand .mark b:last-child{right:0;bottom:0;background:#a995ff;border:2px solid var(--side)}
+.nav{display:flex;flex-direction:column;gap:6px}
+.nav a{display:flex;align-items:center;gap:13px;height:44px;padding:0 13px;border-radius:10px;color:var(--muted);font-weight:600;font-size:17px;text-decoration:none;border:1px solid transparent}
+.nav a svg{width:22px;height:22px;flex:none;fill:currentColor}
+.nav a:hover{color:var(--soft)}
+.nav a.on{background:#0f1829;border-color:#1f2a44;color:#fff}
+.nav a .n{margin-left:auto;font-size:13px;font-weight:700;color:var(--muted)}
+.rule{position:relative;height:1px;margin:16px 6px;background:linear-gradient(90deg,rgba(201,164,92,0),rgba(201,164,92,.75) 50%,rgba(201,164,92,0))}
+.rule i{position:absolute;left:50%;top:-3px;width:7px;height:7px;margin-left:-3px;transform:rotate(45deg);background:var(--gold)}
+.side .foot{margin-top:auto;font-size:12px;font-weight:600;color:var(--muted);text-align:center}
+
+/* ---------- main ---------- */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.head{flex:none;padding:20px 40px 0}
+.head h1{margin:0 0 10px;font-size:20px;font-weight:700;line-height:24px}
+.head h1 span{margin-left:10px;font-size:14px;font-weight:600;color:var(--muted)}
+.tabrow{display:flex;align-items:flex-end;border-bottom:2px solid #1c2740}
+.tabs{display:flex;gap:4px}
+.tab{position:relative;display:flex;align-items:center;gap:8px;height:38px;padding:0 13px;background:none;border:0;border-radius:8px 8px 0 0;color:var(--muted);font-weight:700;font-size:14px;margin-bottom:-2px}
+.tab svg{width:16px;height:16px;fill:currentColor}
+.tab .n{font-weight:600;color:var(--muted)}
+.tab:hover{color:var(--soft)}
+.tab.on{color:#c9bcff}
+.tab.on::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--violet)}
+.tabs.tall .tab{flex-direction:column;justify-content:center;gap:5px;height:58px;width:104px;font-size:12px;padding:0}
+.tabs.tall .tab svg{width:22px;height:22px}
+.tabs.tall .tab.on{background:linear-gradient(180deg,#232b55,#1a2244);color:#fff}
+.tabs.tall .tab.on::after{left:12px;right:12px}
+.tools{margin-left:auto;margin-bottom:7px;display:flex;align-items:center;gap:2px;height:36px;padding:0 5px;border-radius:10px;background:#16213a;border:1px solid #212c48}
+.tools.tall{margin-bottom:11px}
+.tool{display:flex;align-items:center;gap:7px;height:28px;padding:0 9px;border:0;border-radius:7px;background:none;color:var(--muted);font-size:13px;font-weight:600}
+.tool svg{width:16px;height:16px;fill:currentColor}
+.tool:hover{color:#fff;background:#202b49}
+.tool.on{color:#fff}
+.tool .box{width:14px;height:14px;border-radius:4px;border:2px solid var(--muted);display:block}
+.tool.on .box{background:var(--violet);border-color:var(--violet)}
+.tools .sep{width:1px;height:18px;background:#2b3655;margin:0 3px}
+.pane{flex:1;min-height:0;overflow-y:auto;padding:2px 40px 12px;scrollbar-width:thin;scrollbar-color:#2b3655 transparent}
+
+.group{display:flex;align-items:baseline;gap:10px;margin:9px 2px 6px}
+.group h2{margin:0;font-size:15px;font-weight:700}
+.group p{margin:0;font-size:13px;font-weight:600;color:var(--muted)}
+
+/* ---------- icons on tinted squares ---------- */
+.ico{flex:none;display:flex;align-items:center;justify-content:center;border-radius:8px;background:linear-gradient(160deg,var(--made-a),var(--made-b));font-weight:800;color:#fff}
+.ico.raw{background:linear-gradient(160deg,var(--raw-a),var(--raw-b))}
+.ico img{image-rendering:pixelated;display:block}
+.ico.s28{width:28px;height:28px;border-radius:6px;font-size:12px}.ico.s28 img{width:24px;height:24px}
+.ico.s40{width:40px;height:40px;font-size:14px}.ico.s40 img{width:36px;height:36px}
+.ico.s64{width:64px;height:64px;font-size:20px}.ico.s64 img{width:48px;height:48px}
+.ico.s88{width:88px;height:88px;border-radius:10px;font-size:28px}.ico.s88 img{width:72px;height:72px}
+
+/* ---------- bars ---------- */
+.bar{border-radius:10px;background:linear-gradient(180deg,var(--bar),var(--bar-2));border:1px solid var(--edge);margin-bottom:5px}
+.bar.ready{background:linear-gradient(90deg,#4a1b49,#232a4b 46%);border-color:#4a3160}
+.bar.covered{background:var(--bar-dark);border-color:var(--edge-dark)}
+.bar.open{border-color:#46528a}
+.bar.ready.open{border-color:#7a3a78}
+.line{overflow:hidden;display:flex;align-items:center;gap:12px;height:52px;padding:0 10px 0 8px;cursor:pointer;white-space:nowrap}
+.zone{flex:none;width:204px;display:flex}
+.seg{display:flex;width:100%;height:36px;border-radius:18px;background:#56627f;padding:3px;gap:3px}
+.seg button{flex:1;border:0;border-radius:15px;background:#fff;color:#18213a;font-weight:700;font-size:13px;padding:0 6px}
+.seg button:hover{background:#e6e2ff}
+.seg button b{font-weight:800;color:var(--violet-fill)}
+.seg button:disabled{background:#3b4764;color:#aab7d0}
+.seg button:disabled b{color:#aab7d0}
+.seg.off{background:#2a3451}
+.gfield{display:flex;width:100%;height:36px;border-radius:18px;background:var(--well);border:1px solid var(--well-edge);padding:3px;gap:3px;align-items:center}
+.gfield span{padding-left:11px;color:var(--muted);font-weight:700}
+.gfield input{flex:1;min-width:0;width:0;border:0;background:none;outline:0;font-weight:700;font-size:14px;padding:0 4px}
+.gfield input::placeholder{color:var(--muted);font-weight:600}
+.gfield button{border:0;border-radius:14px;height:28px;padding:0 13px;background:#56627f;color:#fff;font-weight:700;font-size:13px}
+.gfield button:hover{background:#6573a0}
+.gfield:focus-within{border-color:var(--violet)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.pill{flex:none;height:24px;padding:0 9px;border-radius:7px;background:var(--violet-fill);font-weight:700;font-size:14px;line-height:24px}
+.pill.quiet{background:#2d3757;color:var(--soft)}
+.name{font-size:17px;font-weight:700;margin-left:-2px}
+.covered .name{color:var(--soft)}
+.sub{font-size:14px;font-weight:600;color:var(--muted)}
+.chips{display:flex;gap:6px;margin-left:6px;min-width:0}
+.inchip{display:flex;align-items:center;gap:7px;height:36px;padding:0 10px 0 4px;border-radius:8px;background:rgba(11,20,34,.62);border:1px solid rgba(255,255,255,.07);font-size:14px;font-weight:600;color:var(--soft)}
+.inchip b{font-weight:700;color:#fff}
+.inchip.short b{color:var(--amber)}
+.grow{flex:1}
+.badge{flex:none;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:5px;background:var(--slate);font-size:13px;font-weight:700;color:#fff}
+.badge.red{background:var(--red)}
+.badge.green{background:var(--green)}
+.badge.violet{background:var(--violet-fill)}
+.badge.loop{background:#3a301a;border:1px solid #8a6f37;color:#f3d28f}
+.badge.dim{background:#2a3451;color:var(--soft)}
+.tick{width:10px;height:6px;border-left:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg) translate(1px,-1px)}
+.caret{flex:none;width:28px;height:28px;border:0;border-radius:7px;background:none;position:relative}
+.caret::after{content:"";position:absolute;left:9px;top:8px;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg)}
+.open .caret::after{transform:rotate(-135deg);top:12px}
+
+.more{display:flex;gap:26px;padding:10px 16px 10px 16px;border-top:1px solid rgba(255,255,255,.08)}
+.more h3{margin:0 0 6px;font-size:13px;font-weight:700;color:var(--muted)}
+.more .col{flex:none}
+.more .col:first-child{flex:1;min-width:0}
+.more .col.w{white-space:nowrap}
+.sum{display:flex;gap:4px}
+.sum div{min-width:60px;padding:6px 9px 7px;border-radius:8px;background:rgba(11,20,34,.6);border:1px solid rgba(255,255,255,.07)}
+.sum div b{display:block;font-size:19px;font-weight:700;line-height:24px}
+.sum div span{font-size:12px;font-weight:600;color:var(--muted)}
+.sum div.hi b{color:#c9bcff}
+.rec{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600;color:var(--soft)}
+.rec .w{color:var(--muted)}
+.note{margin:8px 0 0;font-size:14px;font-weight:600;color:var(--soft)}
+.note b{color:#fff}
+.plist{display:flex;flex-direction:column;gap:3px}
+.plist div{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--soft)}
+.plist b{color:#fff;font-weight:700}
+.plist span{color:var(--muted)}
+
+/* ---------- plans ---------- */
+.addbar{display:flex;align-items:center;gap:8px;height:56px;padding:0 10px;border-radius:10px;background:var(--bar-dark);border:1px solid var(--edge-dark);margin:6px 0 14px}
+.addbar label{font-weight:700;font-size:14px;color:var(--soft);margin:0 4px 0 8px}
+.well{height:36px;border-radius:8px;background:var(--well);border:1px solid var(--well-edge);padding:0 12px;font-weight:600;outline:0}
+.well:focus{border-color:var(--violet)}
+.well::placeholder{color:var(--muted)}
+select.well{appearance:none;padding-right:30px;background-image:linear-gradient(45deg,transparent 50%,#9fb0cc 50%),linear-gradient(135deg,#9fb0cc 50%,transparent 50%);background-position:calc(100% - 16px) 15px,calc(100% - 11px) 15px;background-size:5px 5px;background-repeat:no-repeat}
+.btn{height:36px;padding:0 16px;border:0;border-radius:8px;background:var(--violet-fill);font-weight:700;font-size:14px;color:#fff}
+.btn:hover{background:#6a4be0}
+.btn.ghost{background:#2a3451;color:var(--soft)}
+.btn.ghost:hover{background:#34406a;color:#fff}
+.btn.sm{height:30px;padding:0 12px;font-size:13px}
+.pline{display:flex;align-items:center;gap:12px;height:60px;padding:0 12px 0 10px;white-space:nowrap}
+.pnote{font-size:14px;font-weight:600;color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.prog{flex:none;width:300px;display:flex;align-items:center;gap:12px}
+.track{flex:1;height:8px;border-radius:4px;background:var(--well);overflow:hidden}
+.track i{display:block;height:100%;border-radius:4px;background:var(--violet)}
+.track.full i{background:#3fae86}
+.prog b{width:64px;text-align:right;font-size:15px;font-weight:700}
+.prog b span{color:var(--muted);font-weight:600}
+.state{flex:none;width:112px;display:flex;justify-content:flex-end}
+
+/* ---------- items ---------- */
+.split{flex:1;min-height:0;display:flex}
+.listcol{width:420px;flex:none;display:flex;flex-direction:column;padding:12px 0 0 40px}
+.listcol .well{width:100%;height:40px;flex:none}
+.list{flex:1;min-height:0;overflow-y:auto;padding:10px 0 24px;scrollbar-width:thin;scrollbar-color:#2b3655 transparent}
+.irow{display:flex;align-items:center;gap:12px;width:100%;height:48px;padding:0 12px 0 4px;margin-bottom:4px;border-radius:10px;border:1px solid var(--edge);background:linear-gradient(180deg,var(--bar),var(--bar-2));text-align:left}
+.irow .name{font-size:16px;margin:0}
+.irow .kind{margin-left:auto;font-size:13px;font-weight:600;color:var(--muted)}
+.irow:hover{border-color:#46528a}
+.irow.on{background:linear-gradient(90deg,#3a2c86,#252a55 70%);border-color:#6a55cf}
+.irow.on .kind{color:#d9d2ff}
+.empty{padding:22px 4px;color:var(--muted);font-weight:600}
+.detail{flex:1;min-width:0;overflow-y:auto;padding:12px 40px 28px 28px}
+.dhead{display:flex;align-items:center;gap:18px;padding:14px;border-radius:10px;background:var(--bar-dark);border:1px solid var(--edge-dark)}
+.dhead h2{margin:0 0 6px;font-size:24px;font-weight:700;line-height:28px}
+.dhead p{margin:0;font-weight:600;color:var(--muted)}
+.dhead .own{margin-left:auto;text-align:right;padding-right:8px}
+.dhead .own b{display:block;font-size:24px;font-weight:700;line-height:28px}
+.dhead .own span{font-size:13px;font-weight:600;color:var(--muted)}
+.rline{display:flex;align-items:center;gap:10px;height:60px;padding:0 12px;white-space:nowrap}
+.rline .w{font-weight:600;color:var(--muted)}
+.outchip{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px 0 4px;border-radius:8px;background:var(--violet-soft);border:1px solid #4a3fa0;font-weight:700}
+.bar.def{border-color:#6a55cf}
+.uses{display:flex;gap:6px;flex-wrap:wrap}
+.uses button{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 5px;border-radius:9px;border:1px solid var(--edge);background:var(--bar);font-weight:700;font-size:14px}
+.uses button:hover{border-color:#6a55cf}
+.plain{margin:0;padding:16px 18px;border-radius:10px;background:var(--bar-dark);border:1px solid var(--edge-dark);font-weight:600;color:var(--soft);line-height:22px}
+
+/* ---------- inventory tiles ---------- */
+.tiles{display:flex;flex-wrap:wrap;gap:10px}
+.tile{width:116px;padding:6px;border-radius:10px;background:#141f35;border:1px solid #1e2a45}
+.tile .pic{height:84px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--made-a),var(--made-b));font-size:26px;font-weight:800}
+.tile.raw .pic{background:linear-gradient(160deg,var(--raw-a),var(--raw-b))}
+.tile .pic img{width:60px;height:60px;image-rendering:pixelated}
+.tile .tname{margin:8px 0 3px;text-align:center;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile .need{display:flex;align-items:center;justify-content:center;gap:6px;height:20px;font-size:13px;font-weight:600;color:var(--muted)}
+.tile .need .dot{width:14px;height:14px;border-radius:7px;background:#3a4664;display:flex;align-items:center;justify-content:center;color:#141f35}
+.tile .need .dot .tick{width:7px;height:4px;transform:rotate(-45deg) translate(0,-1px)}
+.tile .need.ok{color:var(--green-text)}
+.tile .need.ok .dot{background:#3fae86}
+.tile .need.shortn{color:var(--amber)}
+.tile input{display:block;width:100%;height:34px;margin-top:6px;border-radius:7px;border:1px solid var(--well-edge);background:var(--well);text-align:center;font-weight:700;font-size:16px;outline:0}
+.tile input:focus{border-color:var(--violet)}
+.thick{height:4px;border-radius:2px;background:#1c2740;margin:22px 0 4px}
+
+/* ---------- library ---------- */
+.games{display:flex;gap:16px;padding-top:12px}
+.game{width:300px;padding:8px;border-radius:12px;background:linear-gradient(180deg,var(--bar),var(--bar-2));border:1px solid var(--edge);text-align:left;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start}
+.game:hover{border-color:#6a55cf}
+.thumb{position:relative;height:172px;flex:none;border-radius:8px;overflow:hidden;display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:repeat(7,1fr)}
+.thumb .mono{position:absolute;left:14px;bottom:10px;font-size:44px;font-weight:800;line-height:1;letter-spacing:-1px}
+.game h2{height:26px;margin:12px 6px 2px;font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.game p{margin:0 6px 12px;font-weight:600;color:var(--muted)}
+.counts{display:flex;gap:6px;margin:0 2px 2px}
+.counts div{flex:1;padding:7px 0 8px;border-radius:7px;background:var(--well);border:1px solid var(--well-edge);text-align:center}
+.counts b{display:block;font-size:17px;font-weight:700}
+.counts span{font-size:12px;font-weight:600;color:var(--muted)}
+.game.add{width:200px;background:none;border:2px dashed #33405f;display:flex;align-items:center;justify-content:center;gap:12px;color:var(--muted);font-weight:700;font-size:16px}
+.game.add:hover{color:#fff;border-color:#6a55cf}
+.plus{position:relative;width:44px;height:44px;border-radius:22px;background:#202b49}
+.plus::before,.plus::after{content:"";position:absolute;left:13px;top:20px;width:18px;height:3px;border-radius:2px;background:currentColor}
+.plus::after{transform:rotate(90deg)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="shared.js"></script>
+<script src="icons.js"></script>
+<script>
+(function () {
+  const G = window.GP, f = G.fmt;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const S = {
+    screen: 'requirements', reqTab: 'all', hideCovered: false, open: new Set(['torch']),
+    planTab: 'all', itemTab: 'all', itemSel: 'torch', query: '', invTab: 'all',
+  };
+  const SCREENS = ['library', 'requirements', 'plans', 'items', 'inventory'];
+
+  // Plain geometric glyphs only.
+  const SVG = {
+    requirements: '<path d="M3 4h4v4H3zM10 5h11v2H10zM3 10h4v4H3zM10 11h11v2H10zM3 16h4v4H3zM10 17h11v2H10z"/>',
+    plans: '<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 3a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm0 3.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/>',
+    items: '<path d="M12 2l9 5v10l-9 5-9-5V7zm0 2.3L6 7.6l6 3.3 6-3.3zM5 9.3v6.5l6 3.3v-6.5zm14 0l-6 3.3v6.5l6-3.3z"/>',
+    inventory: '<path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/>',
+    library: '<path d="M3 5h18v3H3zM3 10.5h18v3H3zM3 16h18v3H3z"/>',
+    all: '<path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z"/>',
+    gather: '<path d="M12 2l10 10-10 10L2 12zm0 4.2L6.2 12l5.8 5.8 5.8-5.8z"/>',
+    craft: '<path d="M4 4h16v16H4zm2.5 2.5v11h11v-11zM11 8h2v3h3v2h-3v3h-2v-3H8v-2h3z"/>',
+    progress: '<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2.5v15a7.5 7.5 0 0 1 0-15z"/>',
+    reached: '<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.6 14.6L6 12.2l1.8-1.8 2.6 2.6 5.8-5.8L18 9z"/>',
+    expand: '<path d="M3 5h18v2.5H3zM3 16.5h18V19H3zM11 9h2v2h2v2h-2v2h-2v-2H9v-2h2z"/>',
+    collapse: '<path d="M3 5h18v2.5H3zM3 16.5h18V19H3zM8 11h8v2H8z"/>',
+  };
+  const svg = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true">${SVG[k]}</svg>`;
+
+  function ico(item, size) {
+    const src = G.icon(item.id);
+    return `<span class="ico s${size}${G.isRaw(item.id) ? ' raw' : ''}">${src ? `<img src="${src}" alt="">` : G.initials(item.name)}</span>`;
+  }
+  const plural = (n, w) => `${f(n)} ${w}${n === 1 ? '' : 's'}`;
+  const tabs = (key, cur, defs, tall) => `<div class="tabs${tall ? ' tall' : ''}">${defs.map(([id, label, icon, n]) =>
+    `<button class="tab${cur === id ? ' on' : ''}" data-act="tab" data-key="${key}" data-id="${id}">${svg(icon)}<span>${label}${n == null ? '' : ` <span class="n">${n}</span>`}</span></button>`).join('')}</div>`;
+
+  /* ---------------- Requirements ---------------- */
+  function planList(plans) {
+    const view = G.plans();
+    return `<div class="plist">${plans.map((p) => {
+      const v = view.find((x) => x.id === p.id);
+      return `<div>${ico(G.item(p.item), 28)}<b>${esc(v.itemName)} ${f(p.target)}</b><span>${esc(p.note || 'No note')}</span>${v.reached ? '<span class="badge green">Reached</span>' : ''}</div>`;
+    }).join('')}</div>`;
+  }
+
+  function gatherBar(g) {
+    const id = g.item.id, open = S.open.has(id), covered = g.missing <= 0;
+    const more = !open ? '' : `<div class="more">
+      <div class="col"><h3>Amounts</h3><div class="sum">
+        <div><b>${f(g.need)}</b><span>needed</span></div>
+        <div><b>${f(g.have)}</b><span>in inventory</span></div>
+        <div class="hi"><b>${f(g.missing)}</b><span>missing</span></div></div>
+        ${g.loop ? `<p class="note">Recipe loop: <b>${g.loop.map(esc).join(' › ')}</b>. The calculation stops here, so gather it.</p>` : `<p class="note">Raw material. It has no recipe and can only be gathered.</p>`}
+      </div>
+      <div class="col w"><h3>Serves ${plural(g.plans.length, 'plan')}</h3>${planList(g.plans)}</div></div>`;
+    return `<div class="bar${covered ? ' covered' : ''}${open ? ' open' : ''}">
+      <div class="line" data-act="toggle" data-id="${id}">
+        <div class="zone"><form class="gfield" data-form="gather" data-id="${id}"><span>+</span><input type="number" min="0" step="any" placeholder="Gathered" aria-label="Amount of ${esc(g.item.name)} gathered"><button type="submit">Add</button></form></div>
+        ${ico(g.item, 40)}
+        ${covered ? '' : `<span class="pill">${f(g.missing)} missing</span>`}
+        <span class="name">${esc(g.item.name)}</span>
+        <span class="sub">${f(g.have)} of ${f(g.need)} in inventory</span>
+        <span class="grow"></span>
+        <span class="sub">${plural(g.plans.length, 'plan')}</span>
+        ${g.loop ? '<span class="badge loop">Recipe loop</span>' : ''}
+        ${covered ? '<span class="badge dim"><i class="tick"></i>Covered</span>' : ''}
+        <button class="caret" aria-label="${open ? 'Collapse' : 'Expand'} ${esc(g.item.name)}"></button>
+      </div>${more}</div>`;
+  }
+
+  function craftBar(c) {
+    const id = c.item.id, open = S.open.has(id), none = c.crafts <= 0;
+    const chips = c.inputs.map((i) => `<span class="inchip${i.have + 1e-9 < i.total ? ' short' : ''}">${ico(i.item, 28)}${esc(i.item.name)} <b>${f(i.have)} / ${f(i.total)}</b></span>`).join('');
+    const more = !open ? '' : `<div class="more">
+      <div class="col"><h3>Default recipe, per craft</h3>
+        <div class="rec">${c.inputs.map((i, n) => `${n ? '<span class="w">and</span>' : ''}<span class="inchip">${ico(i.item, 28)}<b>${f(i.perCraft)}</b> ${esc(i.item.name)}</span>`).join('')}
+          <span class="w">makes</span><span class="outchip">${ico(c.item, 28)}${f(c.recipe.output)} ${esc(c.item.name)}</span></div>
+        <p class="note">${none ? 'Inventory already covers this item.' : c.canCraft > 0 ? `Inventory covers <b>${plural(c.canCraft, 'craft')}</b> of ${f(c.crafts)} now.` : 'Not ready: inventory does not cover the inputs of one craft.'}</p>
+      </div>
+      <div class="col"><h3>Amounts</h3>
+        <div class="sum">
+          <div><b>${f(c.need)}</b><span>needed</span></div>
+          <div><b>${f(c.have)}</b><span>owned</span></div>
+          <div><b>${f(c.missing)}</b><span>missing</span></div>
+          <div class="hi"><b>${f(c.crafts)}</b><span>${c.crafts === 1 ? 'craft' : 'crafts'}</span></div>
+          <div><b>${f(c.makes)}</b><span>made</span></div>
+          <div><b>${f(c.surplus)}</b><span>surplus</span></div>
+        </div>
+      </div>
+      <div class="col w"><h3>Serves ${plural(c.plans.length, 'plan')}</h3>${planList(c.plans)}</div></div>`;
+    return `<div class="bar${c.ready ? ' ready' : ''}${none ? ' covered' : ''}${open ? ' open' : ''}">
+      <div class="line" data-act="toggle" data-id="${id}">
+        <div class="zone"><div class="seg${c.canCraft ? '' : ' off'}">
+          <button data-act="craft" data-id="${id}" data-n="1"${c.canCraft ? '' : ' disabled'}>Craft <b>1</b></button>
+          <button data-act="craft" data-id="${id}" data-n="${c.canCraft}"${c.canCraft ? '' : ' disabled'}>Craft all <b>${c.canCraft}</b></button></div></div>
+        ${ico(c.item, 40)}
+        ${none ? '' : `<span class="pill">${plural(c.crafts, 'craft')}</span>`}
+        <span class="name">${esc(c.item.name)}</span>
+        ${none ? '' : `<span class="sub">makes ${f(c.makes)}</span>`}
+        <span class="chips">${chips}</span>
+        <span class="grow"></span>
+        <span class="sub">${plural(c.plans.length, 'plan')}</span>
+        ${c.surplus > 0 ? `<span class="badge dim">Surplus ${f(c.surplus)}</span>` : ''}
+        ${none ? '<span class="badge dim"><i class="tick"></i>Covered</span>' : c.ready ? '<span class="badge red">Ready</span>' : '<span class="badge">Not ready</span>'}
+        <button class="caret" aria-label="${open ? 'Collapse' : 'Expand'} ${esc(c.item.name)}"></button>
+      </div>${more}</div>`;
+  }
+
+  function requirements() {
+    const r = G.requirements();
+    const covered = r.gather.filter((g) => g.missing <= 0).length;
+    const ready = r.craft.filter((c) => c.ready).length;
+    const gather = S.hideCovered ? r.gather.filter((g) => g.missing > 0) : r.gather;
+    const craft = S.hideCovered ? r.craft.filter((c) => c.crafts > 0) : r.craft;
+    const body = [];
+    if (S.reqTab !== 'craft') body.push(`<div class="group"><h2>Gather</h2><p>${plural(r.gather.length, 'raw material')}, ${covered} covered by inventory</p></div>${gather.map(gatherBar).join('') || '<p class="empty">Nothing left to gather.</p>'}`);
+    if (S.reqTab !== 'gather') body.push(`<div class="group"><h2>Craft</h2><p>${plural(r.craft.length, 'item')} in craft order, inputs first. ${ready} ready</p></div>${craft.map(craftBar).join('') || '<p class="empty">Nothing left to craft.</p>'}`);
+    return `<div class="head"><h1>Requirements<span>across ${plural(G.plans().length, 'plan')}</span></h1>
+      <div class="tabrow">${tabs('reqTab', S.reqTab, [['all', 'All', 'all'], ['gather', 'Gather', 'gather', r.gather.length], ['craft', 'Craft', 'craft', r.craft.length]])}
+        <div class="tools">
+          <button class="tool${S.hideCovered ? ' on' : ''}" data-act="hide"><i class="box"></i>Hide covered</button><i class="sep"></i>
+          <button class="tool" data-act="expand" title="Expand all" aria-label="Expand all">${svg('expand')}</button>
+          <button class="tool" data-act="collapse" title="Collapse all" aria-label="Collapse all">${svg('collapse')}</button>
+        </div></div></div>
+      <div class="pane">${body.join('')}</div>`;
+  }
+
+  /* ---------------- Plans ---------------- */
+  function plans() {
+    const all = G.plans(), reached = all.filter((p) => p.reached).length;
+    const list = all.filter((p) => S.planTab === 'all' || (S.planTab === 'reached') === p.reached);
+    const rows = list.map((p) => {
+      const it = G.item(p.item), pct = Math.min(100, (p.assigned / p.target) * 100);
+      return `<div class="bar${p.reached ? ' covered' : ''}"><div class="pline">
+        ${ico(it, 40)}<span class="pill${p.reached ? ' quiet' : ''}">${f(p.target)}</span><span class="name">${esc(p.itemName)}</span>
+        <span class="pnote">${esc(p.note || 'No note')}</span><span class="grow"></span>
+        <div class="prog"><div class="track${p.reached ? ' full' : ''}"><i style="width:${pct}%"></i></div><b>${f(p.assigned)}<span> / ${f(p.target)}</span></b></div>
+        <div class="state">${p.reached ? '<span class="badge green"><i class="tick"></i>Reached</span>' : `<span class="badge dim">${f(p.target - p.assigned)} to go</span>`}</div>
+        <button class="btn ghost sm" data-act="delplan" data-id="${p.id}">Delete</button></div></div>`;
+    }).join('');
+    return `<div class="head"><h1>Plans<span>inventory is assigned to the oldest plan first</span></h1>
+      <div class="tabrow">${tabs('planTab', S.planTab, [['all', 'All', 'all', all.length], ['open', 'In progress', 'progress', all.length - reached], ['reached', 'Reached', 'reached', reached]])}</div></div>
+      <div class="pane">
+        <form class="addbar" data-form="plan"><label>Add plan</label>
+          <select class="well" name="item" style="width:190px" aria-label="Item">${G.items().map((i) => `<option value="${i.id}">${esc(i.name)}</option>`).join('')}</select>
+          <input class="well" name="target" type="number" min="1" placeholder="Target" style="width:100px" aria-label="Target" required>
+          <input class="well" name="note" placeholder="Note, for example what it is for" style="flex:1" aria-label="Note">
+          <button class="btn" type="submit">Add plan</button></form>
+        ${rows || '<p class="empty">No plans here.</p>'}</div>`;
+  }
+
+  /* ---------------- Items ---------------- */
+  function itemRows() {
+    const q = S.query.trim().toLowerCase();
+    const list = G.items().filter((i) => (S.itemTab === 'all' || (S.itemTab === 'raw') === G.isRaw(i.id)) && i.name.toLowerCase().includes(q));
+    return list.map((i) => {
+      const n = G.recipesOf(i.id).length;
+      return `<button class="irow${S.itemSel === i.id ? ' on' : ''}" data-act="sel" data-id="${i.id}">${ico(i, 40)}<span class="name">${esc(i.name)}</span><span class="kind">${n ? plural(n, 'recipe') : 'Raw material'}</span></button>`;
+    }).join('') || `<p class="empty">No item matches "${esc(S.query)}".</p>`;
+  }
+  function itemDetail() {
+    const it = G.item(S.itemSel), recs = G.recipesOf(it.id), used = G.usedIn(it.id);
+    const loop = G.requirements().gather.find((g) => g.item.id === it.id && g.loop);
+    const recHtml = recs.map((r) => `<div class="bar${r.isDefault ? ' def' : ''}"><div class="rline">
+        ${r.inputs.map((i, n) => `${n ? '<span class="w">and</span>' : ''}<span class="inchip">${ico(i.item, 28)}<b>${f(i.perCraft)}</b> ${esc(i.item.name)}</span>`).join('')}
+        <span class="w">makes</span><span class="outchip">${ico(it, 28)}${f(r.output)} ${esc(it.name)}</span><span class="w">per craft</span>
+        <span class="grow"></span>
+        ${r.isDefault ? '<span class="badge violet"><i class="tick"></i>Default recipe</span>' : `<button class="btn ghost sm" data-act="setdef" data-id="${r.id}">Set as default</button>`}
+      </div></div>`).join('');
+    return `<div class="dhead">${ico(it, 88)}<div><h2>${esc(it.name)}</h2><p>${recs.length ? `Crafted, ${plural(recs.length, 'recipe')}` : 'Raw material'}${used.length ? `, input of ${plural(used.length, 'recipe')}` : ''}</p></div>
+        <div class="own"><b>${f(G.inv(it.id))}</b><span>in inventory</span></div></div>
+      <div class="group"><h2>Recipes</h2>${recs.length > 1 ? '<p>The calculation uses the default recipe</p>' : ''}</div>
+      ${recHtml || '<p class="plain">This is a raw material. It has no recipe and can only be gathered.</p>'}
+      ${loop ? `<p class="plain" style="margin-top:6px">Recipe loop: ${loop.loop.map(esc).join(' › ')}. Requirements stop at this item and list it under Gather.</p>` : ''}
+      <div class="group"><h2>Used in</h2></div>
+      ${used.length ? `<div class="uses">${used.map((u) => `<button data-act="sel" data-id="${u.id}">${ico(u, 28)}${esc(u.name)}</button>`).join('')}</div>` : '<p class="plain">No recipe uses this item as an input.</p>'}`;
+  }
+  function items() {
+    const all = G.items(), raw = all.filter((i) => G.isRaw(i.id)).length;
+    return `<div class="head"><h1>Items<span>${all.length} items in ${esc(G.currentGame.title)}</span></h1>
+      <div class="tabrow">${tabs('itemTab', S.itemTab, [['all', 'All', 'all', all.length], ['raw', 'Raw materials', 'gather', raw], ['made', 'Crafted', 'craft', all.length - raw]])}
+        <div class="tools"><button class="tool">Add item</button><i class="sep"></i><button class="tool">Add recipe</button></div></div></div>
+      <div class="split"><div class="listcol"><input class="well" id="search" placeholder="Search items" value="${esc(S.query)}" aria-label="Search items">
+        <div class="list" id="ilist">${itemRows()}</div></div>
+        <div class="detail">${itemDetail()}</div></div>`;
+  }
+
+  /* ---------------- Inventory ---------------- */
+  function inventory() {
+    const r = G.requirements(), need = {};
+    r.gather.concat(r.craft).forEach((x) => { need[x.item.id] = x.need; });
+    const tile = (i) => {
+      const n = need[i.id], have = G.inv(i.id), src = G.icon(i.id);
+      const row = n == null ? '<div class="need">Not needed</div>'
+        : have + 1e-9 >= n ? `<div class="need ok"><span class="dot"><i class="tick"></i></span>Need ${f(n)}</div>`
+        : `<div class="need shortn"><span class="dot"></span>Need ${f(n)}</div>`;
+      return `<div class="tile${G.isRaw(i.id) ? ' raw' : ''}"><div class="pic">${src ? `<img src="${src}" alt="">` : G.initials(i.name)}</div>
+        <div class="tname">${esc(i.name)}</div>${row}
+        <input type="number" min="0" step="any" value="${f(have)}" data-inv="${i.id}" aria-label="${esc(i.name)} in inventory"></div>`;
+    };
+    const all = G.items(), raw = all.filter((i) => G.isRaw(i.id)), made = all.filter((i) => !G.isRaw(i.id));
+    const body = [];
+    if (S.invTab !== 'made') body.push(`<div class="group"><h2>Raw materials</h2><p>${raw.length} items, gathered</p></div><div class="tiles">${raw.map(tile).join('')}</div>`);
+    if (S.invTab !== 'raw') body.push(`<div class="group"><h2>Crafted</h2><p>${made.length} items, made by a recipe</p></div><div class="tiles">${made.map(tile).join('')}</div>`);
+    return `<div class="head"><h1>Inventory<span>what you own in ${esc(G.currentGame.title)}</span></h1>
+      <div class="tabrow">${tabs('invTab', S.invTab, [['all', 'All', 'all'], ['raw', 'Raw materials', 'gather'], ['made', 'Crafted', 'craft']], true)}
+        <div class="tools tall"><span class="tool" style="cursor:default">Need comes from Requirements</span></div></div></div>
+      <div class="pane">${body.join('<div class="thick"></div>')}</div>`;
+  }
+
+  /* ---------------- Game library ---------------- */
+  function library() {
+    const card = (g) => {
+      const cur = g === G.currentGame;
+      const st = g.stats || { items: G.items().length, recipes: G.items().reduce((n, i) => n + G.recipesOf(i.id).length, 0), plans: G.plans().length };
+      let seed = [...g.title].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7), cells = '';
+      for (let k = 0; k < 84; k++) { seed = (seed * 1103515245 + 12345) >>> 0; const row = Math.floor(k / 12); const l = 20 + row * 2.2 + ((seed >>> 16) % 5) * 2.4; cells += `<i style="background:hsl(${g.hue + ((seed >>> 8) % 3) * 6},34%,${l.toFixed(1)}%)"></i>`; }
+      return `<button class="game" data-act="game" data-id="${g.id}"><div class="thumb">${cells}<span class="mono">${G.initials(g.title)}</span></div>
+        <h2>${esc(g.title)}${cur ? '<span class="badge violet">Open</span>' : ''}</h2><p>${esc(g.blurb)}</p>
+        <div class="counts"><div><b>${st.items}</b><span>items</span></div><div><b>${st.recipes}</b><span>recipes</span></div><div><b>${st.plans}</b><span>plans</span></div></div></button>`;
+    };
+    return `<div class="head"><h1>Game library<span>${G.games.length} games</span></h1><div class="tabrow" style="height:2px"></div></div>
+      <div class="pane"><div class="games">${G.games.map(card).join('')}<button class="game add"><i class="plus"></i>Add game</button></div></div>`;
+  }
+
+  /* ---------------- Shell ---------------- */
+  const VIEW = { library, requirements, plans, items, inventory };
+  function render() {
+    const app = document.getElementById('app');
+    const keep = {}; ['.pane', '.list', '.detail'].forEach((s) => { const e = app.querySelector(s); if (e) keep[s] = e.scrollTop; });
+    const r = G.requirements(), todo = r.gather.filter((g) => g.missing > 0).length + r.craft.filter((c) => c.crafts > 0).length;
+    const nav = (id, label, n) => `<a href="#${id}" class="${S.screen === id ? 'on' : ''}">${svg(id)}${label}</a>`;
+    app.innerHTML = `<aside class="side">
+        <a class="chip" href="#library" style="text-decoration:none"><i></i>${esc(G.currentGame.title)}</a>
+        <div class="brand"><span class="mark"><b></b><b></b></span>Game Planner</div>
+        <nav class="nav">${nav('requirements', 'Requirements', todo)}${nav('plans', 'Plans', G.plans().length)}${nav('items', 'Items')}${nav('inventory', 'Inventory')}</nav>
+        <div class="rule"><i></i></div>
+        <nav class="nav">${nav('library', 'Game library')}</nav>
+        <div class="rule"><i></i></div>
+        <div class="foot">Saved on this computer</div>
+      </aside><main class="main">${VIEW[S.screen]()}</main>`;
+    Object.keys(keep).forEach((s) => { const e = app.querySelector(s); if (e) e.scrollTop = keep[s]; });
+  }
+
+  function route() {
+    const h = location.hash.slice(1);
+    S.screen = SCREENS.includes(h) ? h : 'requirements';
+    render();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('form, input, select')) return;
+    const t = e.target.closest('[data-act]'); if (!t) return;
+    const { act, id } = t.dataset;
+    if (act === 'craft') { e.stopPropagation(); G.craft(id, +t.dataset.n); return; }
+    if (act === 'toggle') S.open.has(id) ? S.open.delete(id) : S.open.add(id);
+    else if (act === 'tab') S[t.dataset.key] = id;
+    else if (act === 'hide') S.hideCovered = !S.hideCovered;
+    else if (act === 'expand') { const r = G.requirements(); r.gather.concat(r.craft).forEach((x) => S.open.add(x.item.id)); }
+    else if (act === 'collapse') S.open.clear();
+    else if (act === 'delplan') { G.deletePlan(id); return; }
+    else if (act === 'sel') S.itemSel = id;
+    else if (act === 'setdef') { G.setDefault(id); return; }
+    else if (act === 'game') { if (id === G.currentGame.id) location.hash = '#requirements'; return; }
+    render();
+  });
+  document.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fm = e.target;
+    if (fm.dataset.form === 'gather') { const v = +fm.querySelector('input').value; if (v > 0) G.addInv(fm.dataset.id, v); }
+    if (fm.dataset.form === 'plan') { const v = +fm.target.value; if (v > 0) G.addPlan(fm.item.value, v, fm.note.value.trim()); }
+  });
+  document.addEventListener('input', (e) => {
+    if (e.target.id === 'search') { S.query = e.target.value; document.getElementById('ilist').innerHTML = itemRows(); }
+  });
+  document.addEventListener('change', (e) => {
+    const id = e.target.dataset && e.target.dataset.inv;
+    if (id) G.setInv(id, e.target.value);
+  });
+
+  G.on(render);
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+</body>
+</html>

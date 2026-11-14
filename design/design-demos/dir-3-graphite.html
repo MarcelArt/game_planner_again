@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Game Planner — C · Grid and panel</title>
+<meta name="viewport" content="width=1440, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #191a1c;
+  --side: #232426;
+  --tile: #212225;
+  --tile-2: #28282b00;
+  --edge: #2e2f32;
+  --edge-2: #3a3b3f;
+  --well: #121314;
+  --text: #ffffff;
+  --soft: #e5e5e7;
+  --muted: #a7a8ac;
+  --violet: #fbd960;
+  --violet-text: #fdeaa4;
+  --violet-fill: #514721;
+  --gold: #7e90a3;
+  --gold-text: #99a9b9;
+  --green: #55c792;
+  --green-fill: #173a2a;
+  --red: #ff8196;
+  --slate: #404144;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); }
+body {
+  font-family: "Open Sans", "Segoe UI", system-ui, sans-serif;
+  font-size: 14px; line-height: 1.4; color: var(--soft);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; padding: 0; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: 224px 1fr; width: 100vw; height: 100vh; }
+
+/* ---------- sidebar ---------- */
+.side { background: linear-gradient(180deg, #242528, #222325); display: flex; flex-direction: column; padding: 24px 14px 18px; }
+.chip { align-self: center; display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 14px 0 8px; border-radius: 14px; background: #191a1c; color: var(--soft); font-weight: 700; font-size: 14px; }
+.chip i { width: 14px; height: 14px; border-radius: 4px; display: block; }
+.chip:hover { color: #ffffff; }
+.brand { display: flex; align-items: center; justify-content: center; gap: 10px; height: 66px; margin-bottom: 6px; color: #ffffff; font-weight: 800; font-size: 19px; letter-spacing: .01em; }
+.mark { width: 22px; height: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.mark b { border-radius: 3px; background: #9b9da4; }
+.mark b:nth-child(2) { background: var(--violet); }
+.mark b:nth-child(3) { background: #5d9d7f; }
+.mark b:nth-child(4) { background: var(--gold); }
+.nav { display: flex; flex-direction: column; gap: 6px; }
+.nav a { display: flex; align-items: center; gap: 11px; height: 44px; padding: 0 11px; border-radius: 10px; border: 1px solid transparent; color: var(--muted); font-size: 16px; font-weight: 700; text-decoration: none; }
+.nav a:hover { color: #e0e1e3; }
+.nav a.on { background: #191a1c; border-color: #292a2d; color: #ffffff; }
+.nav a .n { margin-left: auto; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 11px; background: var(--green-fill); color: var(--green); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.rule { position: relative; height: 1px; margin: 20px 6px; background: linear-gradient(90deg, #232426, #58636e, #232426); }
+.rule::after { content: ""; position: absolute; left: 50%; top: -3px; width: 6px; height: 6px; margin-left: -3px; background: var(--gold); transform: rotate(45deg); }
+.side .foot { margin-top: auto; text-align: center; color: var(--muted); font-size: 12px; font-weight: 600; }
+
+/* ---------- main ---------- */
+main { display: flex; min-width: 0; height: 100vh; }
+.col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.head { padding: 40px 20px 0 40px; flex: none; }
+.head h1 { margin: 0 0 14px; font-size: 20px; line-height: 28px; font-weight: 700; color: #ffffff; }
+.tabrow { display: flex; align-items: center; border-bottom: 1px solid #292a2d; height: 58px; }
+.tab { position: relative; width: 98px; height: 57px; border-radius: 10px 10px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.tab:hover { color: #e0e1e3; }
+.tab.on { color: #ffffff; background: linear-gradient(180deg, #303135, #28292c); }
+.tab.on::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2px; background: var(--violet); border-radius: 2px; }
+.tab .c { color: var(--muted); font-weight: 600; margin-left: 4px; }
+.tab.on .c { color: var(--violet-text); }
+.cluster { margin-left: auto; display: flex; align-items: center; gap: 2px; height: 44px; padding: 0 6px; border-radius: 10px; background: #222325; border: 1px solid #292a2d; }
+.cluster button { width: 36px; height: 34px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); }
+.cluster button:hover { color: #ffffff; background: #2b2c2f; }
+.cluster button.on { color: #ffffff; background: var(--violet-fill); }
+.cluster .sep { width: 1px; height: 22px; background: #37383c; margin: 0 4px; }
+.search { margin-left: auto; display: flex; align-items: center; gap: 8px; width: 280px; height: 40px; padding: 0 12px; border-radius: 10px; background: var(--well); border: 1px solid #292a2d; color: var(--muted); }
+.search input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: #ffffff; font-weight: 600; }
+.search input::placeholder { color: var(--muted); font-weight: 500; }
+.search:focus-within { border-color: var(--violet); }
+
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px 20px 40px; }
+.scroll::-webkit-scrollbar { width: 0; }
+.sec { display: flex; align-items: baseline; gap: 10px; margin: 0 0 9px; }
+.sec h2 { margin: 0; font-size: 15px; font-weight: 700; color: #ffffff; }
+.sec span { color: var(--muted); font-size: 13px; font-weight: 500; }
+.bar { height: 3px; border-radius: 2px; background: #292a2d; margin: 14px 0 14px; }
+
+/* ---------- picture square ---------- */
+.pic { position: relative; display: grid; place-items: center; border-radius: 8px; flex: none; overflow: hidden; }
+.pic img { image-rendering: pixelated; display: block; }
+.pic .fb { display: grid; place-items: center; border-radius: 6px; background: rgba(18, 19, 20, .28); border: 1px solid rgba(255, 255, 255, .22); color: #ffffff; font-weight: 800; letter-spacing: .02em; }
+.t-raw { background: linear-gradient(160deg, #557f6b, #446958); }
+.t-mid { background: linear-gradient(160deg, #65666b, #535559); }
+.t-end { background: linear-gradient(160deg, #847a55, #706644); }
+.pic.xl { width: 84px; height: 84px; border-radius: 10px; } .pic.xl img { width: 72px; height: 72px; } .pic.xl .fb { width: 60px; height: 60px; font-size: 24px; }
+.pic.md { width: 44px; height: 44px; } .pic.md img { width: 36px; height: 36px; } .pic.md .fb { width: 32px; height: 32px; font-size: 14px; }
+.pic.sm { width: 40px; height: 40px; } .pic.sm img { width: 36px; height: 36px; } .pic.sm .fb { width: 30px; height: 30px; font-size: 13px; }
+.pic.xs { width: 28px; height: 28px; border-radius: 6px; } .pic.xs img { width: 24px; height: 24px; } .pic.xs .fb { width: 22px; height: 22px; font-size: 12px; border-radius: 4px; }
+
+/* ---------- item tile ---------- */
+.grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.grid.wide8 { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; }
+.tile { position: relative; display: flex; flex-direction: column; text-align: left; padding: 6px; border-radius: 10px; background: var(--tile); border: 1px solid var(--edge); cursor: pointer; }
+.tile:hover { border-color: #45464a; }
+.tile .pic { width: 100%; height: 104px; align-items: end; padding-bottom: 6px; }
+.tile .pic img { width: 72px; height: 72px; }
+.tile .pic .fb { width: 64px; height: 64px; font-size: 24px; margin-bottom: 4px; }
+.tile .nm { margin: 7px 3px 2px; font-size: 14px; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .kv { display: flex; align-items: baseline; justify-content: space-between; margin: 0 3px; height: 21px; font-size: 12.5px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.tile .kv b { font-size: 15px; font-weight: 700; color: #ffffff; }
+.tile .kv b small { font-size: 12px; font-weight: 700; color: var(--gold-text); margin-left: 3px; }
+.tile .kv .ok { color: var(--green); display: inline-flex; align-items: center; gap: 4px; }
+.tile .kv svg.i { width: 14px; height: 14px; stroke-width: 3; align-self: center; }
+.tile .slot { margin-top: 7px; height: 34px; }
+.tile.sel { border-color: var(--violet); box-shadow: inset 0 0 0 1px var(--violet); background: #2a2b2e; }
+.tile.ready { background: linear-gradient(180deg, #1b4230 0, #202123 55%, #212225 100%); border-color: #2d6a4e; }
+.tile.loop { background: linear-gradient(180deg, #2a2e33 0, #2a2a2c 55%, #212225 100%); border-color: #49535d; }
+.tile.ready.sel, .tile.loop.sel { border-color: var(--violet); }
+.tile.covered .pic img, .tile.covered .pic .fb { opacity: .55; }
+.tile.covered .nm { color: var(--soft); }
+
+.flag { position: absolute; left: 6px; top: 6px; height: 22px; padding: 0 8px 0 6px; border-radius: 6px; display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.flag svg.i { width: 13px; height: 13px; stroke-width: 3; }
+.flag.ready { background: #55c792; color: #062014; }
+.flag.loop { background: #8799ab; color: #111519; }
+.flag.cov { background: rgba(18, 19, 20, .62); color: #e0e1e3; }
+.flag.wait { background: rgba(18, 19, 20, .62); color: #d1d2d4; padding-left: 8px; }
+
+.well { display: flex; align-items: center; height: 34px; border-radius: 7px; background: var(--well); border: 1px solid #1c1d1f; }
+.well:focus-within { border-color: var(--violet); }
+.well input { flex: 1; min-width: 0; width: 100%; height: 100%; background: none; border: 0; outline: 0; text-align: center; font-weight: 700; font-size: 14px; color: #ffffff; padding: 0 4px; }
+.well input::placeholder { color: var(--muted); font-weight: 600; font-size: 13px; }
+.well button { flex: none; height: 26px; min-width: 30px; margin: 0 3px; padding: 0 7px; border-radius: 5px; background: #2b2c2e; color: var(--soft); font-size: 12.5px; font-weight: 700; }
+.well button:hover { background: #37383c; color: #ffffff; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border-radius: 7px; background: #36373b; color: #ffffff; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.btn:hover { background: #44454a; }
+.btn.go { background: #3f9d71; color: #04170e; }
+.btn.go:hover { background: #55c792; }
+.btn.pri { background: var(--violet); color: #ffffff; }
+.btn.pri:hover { background: #fbde75; }
+.btn i { font-style: normal; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 5px; background: rgba(4, 23, 14, .22); display: grid; place-items: center; font-size: 12.5px; }
+.btn:disabled { background: var(--well); border: 1px solid #1c1d1f; color: var(--muted); cursor: default; }
+.btn:disabled i { background: #212225; }
+.tile .btn { width: 100%; padding: 0 6px; }
+
+/* ---------- wide tile ---------- */
+.wides { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.wide { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 8px 6px 6px; border-radius: 10px; background: var(--tile); border: 1px solid var(--edge); text-align: left; }
+button.wide:hover { border-color: #45464a; }
+.wide .tx { flex: 1; min-width: 0; }
+.wide .tx b { display: block; color: #ffffff; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wide .tx span { display: block; color: var(--muted); font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wide .amt { flex: none; height: 30px; min-width: 62px; padding: 0 9px; border-radius: 7px; background: var(--well); display: flex; align-items: center; justify-content: center; gap: 4px; font-weight: 700; color: #ffffff; font-size: 14px; }
+.wide .amt em { font-style: normal; color: var(--muted); font-weight: 600; }
+.wide.hit { border-color: #b59e4a; background: #2b2c2f; }
+.wide.reached .amt { background: var(--green-fill); color: var(--green); font-size: 12.5px; }
+.wide .amt svg.i { width: 13px; height: 13px; stroke-width: 3; }
+
+/* ---------- panel ---------- */
+.panel { flex: none; width: 360px; margin: 16px 16px 16px 0; border-radius: 12px; background: #212124; border: 1px solid var(--edge); display: flex; flex-direction: column; min-height: 0; }
+.panel .body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 8px; }
+.panel .body::-webkit-scrollbar { width: 0; }
+.ph { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+.ph h2 { margin: 0 0 2px; font-size: 20px; line-height: 26px; font-weight: 700; color: #ffffff; }
+.ph p { margin: 0 0 7px; color: var(--muted); font-size: 13px; font-weight: 500; }
+.pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.pill svg.i { width: 13px; height: 13px; stroke-width: 3; }
+.pill.ready { background: #55c792; color: #062014; }
+.pill.loop { background: #8799ab; color: #111519; }
+.pill.slate { background: var(--slate); color: #ececed; }
+.pill.violet { background: #957f32; color: #ffffff; }
+.pill.green { background: var(--green-fill); color: var(--green); }
+.pt { margin: 14px 0 7px; font-size: 13px; font-weight: 700; color: var(--soft); display: flex; justify-content: space-between; align-items: baseline; }
+.pt span { color: var(--muted); font-weight: 500; }
+.stack { display: flex; flex-direction: column; gap: 6px; }
+.panel .wide { background: #252629; border-color: #313235; width: 100%; }
+.note { color: var(--muted); font-size: 13px; font-weight: 500; margin: 8px 2px 0; }
+.note b { color: #ffffff; font-weight: 700; }
+.loopbox { padding: 10px 12px; border-radius: 10px; background: #212426; border: 1px solid #414a53; color: #c7cfd7; font-size: 13.5px; font-weight: 500; }
+.loopbox b { color: #ffffff; font-weight: 700; }
+.sum { border-radius: 10px; background: var(--well); padding: 5px 12px; }
+.sum div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; height: 27px; font-size: 13.5px; color: var(--soft); font-weight: 500; }
+.sum div + div { border-top: 1px solid #212124; }
+.sum div b { color: #ffffff; font-weight: 700; font-size: 14.5px; }
+.sum div.sub { color: var(--muted); padding-left: 12px; font-size: 13px; }
+.sum div.sub b { color: var(--soft); font-size: 13.5px; font-weight: 600; }
+.sum div.key b { color: var(--violet-text); font-size: 16px; }
+.sum div.gold b { color: var(--gold-text); }
+.sum div span em { font-style: normal; color: var(--muted); }
+.prow { display: flex; align-items: center; gap: 9px; min-height: 36px; padding: 5px 10px; border-radius: 8px; background: #252629; }
+.prow b { color: #ffffff; font-weight: 700; white-space: nowrap; }
+.prow > .pic { flex: none; }
+.prow > span:not(.pic) { color: var(--muted); font-size: 13px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prow em { font-style: normal; font-weight: 700; color: var(--soft); white-space: nowrap; }
+.acts { flex: none; padding: 12px 16px 16px; border-top: 1px solid var(--edge); }
+.acts .hint { margin: 0 0 10px; font-size: 13px; color: var(--soft); font-weight: 500; }
+.acts .hint b { color: #ffffff; }
+.acts .two { display: grid; grid-template-columns: 1fr 1.35fr; gap: 8px; }
+.acts .btn { height: 42px; font-size: 14.5px; }
+.acts .well { height: 42px; }
+.acts .gath { display: grid; grid-template-columns: 1fr 120px; gap: 8px; }
+
+/* items panel */
+.rec { border-radius: 10px; background: #252629; border: 1px solid #313235; padding: 10px; }
+.rec.def { border-color: #b59e4a; background: #2b2c2f; }
+.rec .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; min-height: 30px; }
+.rec .top b { color: #ffffff; font-size: 14px; }
+.rec .btn { height: 30px; }
+.rec .ins { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chipx { display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 10px 0 4px; border-radius: 8px; background: var(--well); color: #ffffff; font-weight: 700; font-size: 13.5px; }
+.chipx em { font-style: normal; color: var(--muted); font-weight: 600; }
+.chipx.out { background: #514721; }
+.rec .mk { color: var(--muted); font-size: 12.5px; font-weight: 600; margin: 0 2px; }
+.used { display: flex; flex-wrap: wrap; gap: 6px; }
+button.chipx:hover { background: #1c1d1f; }
+
+/* ---------- plans ---------- */
+.addbar { display: grid; grid-template-columns: 240px 120px 1fr 130px; gap: 8px; padding: 10px; border-radius: 12px; background: #212124; border: 1px solid var(--edge); margin-bottom: 16px; }
+.fld { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.fld input, .fld select { height: 40px; border-radius: 8px; background: var(--well); border: 1px solid #1c1d1f; padding: 0 12px; color: #ffffff; font-weight: 600; font-size: 14px; outline: 0; }
+.fld input:focus, .fld select:focus { border-color: var(--violet); }
+.fld input::placeholder { color: var(--muted); font-weight: 500; }
+.addbar .btn { height: 40px; align-self: end; font-size: 14px; }
+.rows { display: flex; flex-direction: column; gap: 6px; }
+.row { display: flex; align-items: center; gap: 14px; height: 58px; padding: 0 10px 0 9px; border-radius: 10px; background: linear-gradient(90deg, #2a2b2e, #252629); border: 1px solid #37383c; }
+.row.reached { background: linear-gradient(90deg, #193c2c, #252629 70%); border-color: #2d6a4e; }
+.row .ttl { display: flex; align-items: center; gap: 9px; width: 400px; min-width: 0; }
+.row .ttl b { font-size: 17px; font-weight: 700; color: #ffffff; white-space: nowrap; }
+.row .prog { flex: 1; display: flex; align-items: center; gap: 12px; }
+.row .track { flex: 1; height: 8px; border-radius: 4px; background: var(--well); overflow: hidden; }
+.row .track i { display: block; height: 100%; border-radius: 4px; background: var(--violet); }
+.row.reached .track i { background: var(--green); }
+.row .num { width: 96px; text-align: right; font-weight: 700; color: #ffffff; font-size: 15px; }
+.row .num em { font-style: normal; color: var(--muted); font-weight: 600; }
+.row .st { width: 108px; display: flex; justify-content: flex-end; }
+.row .del { height: 34px; padding: 0 12px; border-radius: 7px; color: var(--muted); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.row .del:hover { background: #3b1f33; color: var(--red); }
+.row .del svg.i { width: 15px; height: 15px; }
+
+/* ---------- inventory tiles ---------- */
+.step { display: grid; grid-template-columns: 30px 1fr 30px; }
+.step button { margin: 0 3px; min-width: 0; padding: 0; font-size: 16px; }
+
+/* ---------- library ---------- */
+.games { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.game { display: flex; flex-direction: column; text-align: left; padding: 8px; border-radius: 12px; background: var(--tile); border: 1px solid var(--edge); }
+.game.cur { border-color: #b59e4a; }
+button.game:hover { border-color: #45464a; }
+.thumb { position: relative; height: 156px; border-radius: 8px; overflow: hidden; display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(6, 1fr); }
+.thumb .ini { position: absolute; left: 12px; bottom: 12px; width: 52px; height: 52px; border-radius: 8px; background: rgba(18, 19, 20, .55); border: 1px solid rgba(255, 255, 255, .28); display: grid; place-items: center; color: #ffffff; font-weight: 800; font-size: 20px; }
+.thumb .pill { position: absolute; right: 10px; top: 10px; }
+.game .gt { padding: 12px 6px 6px; }
+.game .gt b { display: block; font-size: 18px; font-weight: 700; color: #ffffff; }
+.game .gt span { display: block; color: var(--muted); font-size: 13.5px; font-weight: 500; margin-top: 1px; }
+.counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+.counts div { border-radius: 7px; background: var(--well); padding: 6px 0 7px; text-align: center; color: var(--muted); font-size: 12px; font-weight: 600; }
+.counts div b { display: block; color: #ffffff; font-size: 17px; font-weight: 700; line-height: 22px; }
+.game.add { align-items: center; justify-content: center; gap: 10px; background: #1c1d1f; border: 1px solid #37383c; color: var(--muted); font-weight: 700; font-size: 15px; min-height: 300px; }
+.game.add:hover { color: #ffffff; }
+.game.add .plus { width: 52px; height: 52px; border-radius: 10px; background: var(--tile); border: 1px solid var(--edge-2); display: grid; place-items: center; color: #ffffff; }
+.game.add small { font-size: 13px; font-weight: 500; color: var(--muted); text-align: center; max-width: 180px; }
+.empty { color: var(--muted); padding: 30px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" id="side"></aside>
+  <main id="main"></main>
+</div>
+
+<script src="shared.js"></script>
+<script src="icons.js"></script>
+<script>
+(function () {
+  const GP = window.GP, f = GP.fmt;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  /* plain line glyphs, abstract UI symbols only */
+  const P = {
+    req: 'M4 6.5l2 2 3-4M13 6.5h7M4 13.5l2 2 3-4M13 13.5h7M5 19.5h3M13 19.5h7',
+    plans: 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z',
+    items: 'M12 3l8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5l8-4.5M12 12v9',
+    inv: 'M4 4h6.5v6.5H4zM13.5 4H20v6.5h-6.5zM4 13.5h6.5V20H4zM13.5 13.5H20V20h-6.5z',
+    lib: 'M4 5h4v14H4zM10 5h4v14h-4zM16.5 6l3.5 1l-3 12l-3.5-1',
+    gather: 'M12 4v10M8 10l4 4l4-4M4 19h16',
+    craft: 'M12 3l9 5l-9 5l-9-5zM3 13l9 5l9-5',
+    ready: 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM8 12.5l3 3l5-6',
+    tick: 'M5 12.5l4.5 4.5L19 7.5',
+    loop: 'M4 12a8 8 0 0 1 14-5.3M20 4v4h-4M20 12a8 8 0 0 1-14 5.3M4 20v-4h4',
+    plus: 'M12 5v14M5 12h14',
+    x: 'M6 6l12 12M18 6L6 18',
+    eye: 'M2.5 12s3.5-6.5 9.5-6.5s9.5 6.5 9.5 6.5s-3.5 6.5-9.5 6.5S2.5 12 2.5 12zM12 9.5a2.5 2.5 0 1 0 0 5a2.5 2.5 0 0 0 0-5z',
+    search: 'M10.5 4a6.5 6.5 0 1 0 0 13a6.5 6.5 0 0 0 0-13zM15.5 15.5L20 20',
+    raw: 'M12 3l8 9l-8 9l-8-9z',
+    chev: 'M9 6l6 6l-6 6',
+  };
+  const ic = (n) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n]}"/></svg>`;
+
+  const tier = (id) => (GP.isRaw(id) ? 'raw' : GP.usedIn(id).length ? 'mid' : 'end');
+  function pic(it, size) {
+    const src = GP.icon(it.id);
+    const inner = src ? `<img src="${src}" alt="">` : `<span class="fb">${GP.initials(it.name)}</span>`;
+    return `<span class="pic ${size || ''} t-${tier(it.id)}">${inner}</span>`;
+  }
+
+  const S = { route: 'requirements', selReq: 'torch', selItem: 'torch', reqTab: 'all', hideCovered: false, itemTab: 'all', q: '', invTab: 'all' };
+  const ROUTES = ['library', 'requirements', 'plans', 'items', 'inventory'];
+
+  /* ---------------- sidebar ---------------- */
+  function side() {
+    const req = GP.requirements();
+    const ready = req.craft.filter((c) => c.ready).length;
+    const g = GP.currentGame;
+    const a = (r, icon, label, extra) => `<a href="#${r}" class="${S.route === r ? 'on' : ''}">${ic(icon)}${label}${extra || ''}</a>`;
+    return `
+      <a class="chip" href="#library" style="text-decoration:none" title="Back to the game library"><i style="background:hsl(${g.hue} 55% 55%)"></i>${esc(g.title)}</a>
+      <div class="brand"><span class="mark"><b></b><b></b><b></b><b></b></span>Game Planner</div>
+      <nav class="nav">
+        ${a('requirements', 'req', 'Requirements', ready ? `<span class="n" title="${ready} crafts ready">${ready}</span>` : '')}
+        ${a('plans', 'plans', 'Plans')}
+        ${a('items', 'items', 'Items')}
+        ${a('inventory', 'inv', 'Inventory')}
+      </nav>
+      <div class="rule"></div>
+      <nav class="nav">${a('library', 'lib', 'Game library')}</nav>
+      <div class="rule"></div>
+      <div class="foot">${GP.items().length} items · ${GP.plans().length} plans</div>`;
+  }
+
+  /* ---------------- requirements ---------------- */
+  function gatherTile(r) {
+    const cov = r.missing <= 0;
+    const cls = ['tile', r.loop ? 'loop' : '', cov ? 'covered' : '', S.selReq === r.item.id ? 'sel' : ''].join(' ');
+    const flag = r.loop ? `<span class="flag loop">${ic('loop')}Recipe loop</span>` : cov ? `<span class="flag cov">${ic('tick')}Covered</span>` : '';
+    return `<div class="${cls}" data-act="sel-req" data-id="${r.item.id}">
+      ${pic(r.item)}${flag}
+      <div class="nm">${esc(r.item.name)}</div>
+      <div class="kv"><span>Missing</span>${cov ? `<span class="ok">${ic('tick')}none</span>` : `<b>${f(r.missing)}</b>`}</div>
+      <div class="kv"><span>Have</span><b>${f(r.have)}<small style="color:var(--muted);font-weight:600">/ ${f(r.need)}</small></b></div>
+      <div class="well slot"><input id="g-${r.item.id}" data-gather="${r.item.id}" inputmode="decimal" placeholder="0" aria-label="Amount of ${esc(r.item.name)} gathered"><button data-act="gather" data-id="${r.item.id}">Add</button></div>
+    </div>`;
+  }
+  function craftTile(r) {
+    const cov = r.crafts <= 0;
+    const cls = ['tile', r.ready ? 'ready' : '', cov ? 'covered' : '', S.selReq === r.item.id ? 'sel' : ''].join(' ');
+    const flag = r.ready ? `<span class="flag ready">${ic('tick')}Ready</span>` : cov ? `<span class="flag cov">${ic('tick')}Covered</span>` : `<span class="flag wait">Not ready</span>`;
+    return `<div class="${cls}" data-act="sel-req" data-id="${r.item.id}">
+      ${pic(r.item)}${flag}
+      <div class="nm">${esc(r.item.name)}</div>
+      <div class="kv"><span>Crafts</span><b>${f(r.crafts)}</b></div>
+      <div class="kv"><span>Makes</span><b>${f(r.makes)}${r.surplus > 0 ? `<small title="Surplus ${f(r.surplus)}">+${f(r.surplus)}</small>` : ''}</b></div>
+      <button class="btn slot ${r.canCraft ? 'go' : ''}" data-act="craft" data-id="${r.item.id}" data-n="${r.canCraft}" ${r.canCraft ? '' : 'disabled'}>Craft all <i>${r.canCraft}</i></button>
+    </div>`;
+  }
+  function planStrip(sel) {
+    const hit = new Set(sel ? sel.plans.map((p) => p.id) : []);
+    return GP.plans().map((p) => `<button class="wide ${p.reached ? 'reached' : ''} ${hit.has(p.id) ? 'hit' : ''}" data-act="sel-req" data-id="${p.item}" title="Plan: ${esc(p.itemName)}, target ${p.target}">
+      ${pic(GP.item(p.item), 'sm')}
+      <span class="tx"><b>${esc(p.itemName)}</b><span>${esc(p.note || 'No note')}</span></span>
+      <span class="amt">${p.reached ? `${ic('tick')}Reached` : `${f(p.assigned)}<em>/ ${f(p.target)}</em>`}</span>
+    </button>`).join('');
+  }
+  function breakdown(id, req) {
+    const out = [];
+    const direct = GP.plans().filter((p) => p.item === id).reduce((s, p) => s + p.target, 0);
+    if (direct) out.push(['Plan targets', direct]);
+    req.craft.forEach((c) => c.inputs.forEach((i) => { if (i.item.id === id && i.total > 0) out.push([`${c.item.name}, ${f(c.crafts)} ${c.crafts === 1 ? 'craft' : 'crafts'}`, i.total]); }));
+    return out;
+  }
+  function planRows(list) {
+    const view = GP.plans();
+    return `<div class="stack">${list.map((p) => { const v = view.find((x) => x.id === p.id); return `<div class="prow">${pic(GP.item(p.item), 'xs')}<b>${esc(v.itemName)}</b><span>${esc(p.note || '')}</span>${v.reached ? `<span class="pill green" style="flex:none">${ic('tick')}Reached</span>` : `<em>target ${f(p.target)}</em>`}</div>`; }).join('')}</div>`;
+  }
+  function reqPanel(r, req) {
+    if (!r) return `<aside class="panel"><div class="body"><p class="note">No requirements. Add a plan to see what to gather and craft.</p></div></aside>`;
+    const it = r.item, isCraft = !!r.recipe;
+    const bd = breakdown(it.id, req).map(([l, n]) => `<div class="sub"><span>${esc(l)}</span><b>${f(n)}</b></div>`).join('');
+    let state, sub, mid, acts;
+    if (isCraft) {
+      const cov = r.crafts <= 0;
+      state = r.ready ? `<span class="pill ready">${ic('tick')}Ready</span>` : cov ? `<span class="pill slate">${ic('tick')}Covered</span>` : `<span class="pill slate">Not ready</span>`;
+      sub = `Craft · default recipe makes ${f(r.recipe.output)}`;
+      const ins = r.inputs.map((i) => {
+        const short = Math.max(0, i.total - i.have);
+        return `<button class="wide" data-act="sel-req" data-id="${i.item.id}">${pic(i.item, 'md')}
+          <span class="tx"><b>${esc(i.item.name)}</b><span>${f(i.perCraft)} per craft${short > 0 ? ` · <span style="display:inline;color:var(--red);font-weight:600">${f(short)} short</span>` : i.total > 0 ? ` · <span style="display:inline;color:var(--green);font-weight:600">enough</span>` : ''}</span></span>
+          <span class="amt">${f(i.have)}<em>/ ${f(i.total)}</em></span></button>`;
+      }).join('');
+      mid = `
+        <div class="pt">Inputs <span>in inventory / needed for ${f(r.crafts)} ${r.crafts === 1 ? 'craft' : 'crafts'}</span></div>
+        <div class="stack">${ins}</div>
+        <div class="pt">The arithmetic</div>
+        <div class="sum">
+          <div><span>Needed</span><b>${f(r.need)}</b></div>${bd}
+          <div><span>In inventory</span><b>${f(r.have)}</b></div>
+          <div><span>Missing</span><b>${f(r.missing)}</b></div>
+          <div class="key"><span>Crafts <em>· ${f(r.missing)} ÷ ${f(r.recipe.output)}, whole crafts</em></span><b>${f(r.crafts)}</b></div>
+          <div><span>Makes</span><b>${f(r.makes)}</b></div>
+          <div class="${r.surplus > 0 ? 'gold' : ''}"><span>Surplus</span><b>${f(r.surplus)}</b></div>
+        </div>`;
+      const hint = cov ? `Inventory already covers what the plans need.` : r.canCraft ? `Inventory covers <b>${r.canCraft} of ${f(r.crafts)}</b> crafts now.` : `Inventory covers <b>0 of ${f(r.crafts)}</b> crafts. Inputs are short.`;
+      acts = `<p class="hint">${hint}</p><div class="two">
+        <button class="btn" data-act="craft" data-id="${it.id}" data-n="1" ${r.canCraft ? '' : 'disabled'}>Craft 1</button>
+        <button class="btn ${r.canCraft ? 'go' : ''}" data-act="craft" data-id="${it.id}" data-n="${r.canCraft}" ${r.canCraft ? '' : 'disabled'}>Craft all <i>${r.canCraft}</i></button></div>`;
+    } else {
+      const cov = r.missing <= 0;
+      state = r.loop ? `<span class="pill loop">${ic('loop')}Recipe loop</span>` : cov ? `<span class="pill slate">${ic('tick')}Covered</span>` : `<span class="pill slate">To gather</span>`;
+      sub = r.loop ? 'Gathered because of a recipe loop' : 'Raw material · gathered';
+      mid = `${r.loop ? `<div class="loopbox"><b>${r.loop.map(esc).join(' → ')}</b><br>Its default recipes lead back to itself, so the calculation stops here and treats ${esc(it.name)} as something to gather.</div>` : ''}
+        <div class="pt">The arithmetic</div>
+        <div class="sum">
+          <div><span>Needed</span><b>${f(r.need)}</b></div>${bd}
+          <div><span>In inventory</span><b>${f(r.have)}</b></div>
+          <div class="key"><span>Missing</span><b>${f(r.missing)}</b></div>
+        </div>`;
+      acts = `<p class="hint">${cov ? `Inventory covers all <b>${f(r.need)}</b> needed.` : `Still to gather: <b>${f(r.missing)}</b>. Record what you picked up.`}</p>
+        <div class="gath"><div class="well"><input id="pg-${it.id}" data-gather="${it.id}" inputmode="decimal" placeholder="Amount gathered" aria-label="Amount gathered"></div>
+        <button class="btn pri" data-act="gather-panel" data-id="${it.id}">Add to inventory</button></div>`;
+    }
+    return `<aside class="panel">
+      <div class="body" id="sc-panel">
+        <div class="ph">${pic(it, 'xl')}<div><h2>${esc(it.name)}</h2><p>${sub}</p>${state}</div></div>
+        ${mid}
+        <div class="pt">Plans served <span>${r.plans.length}</span></div>
+        ${planRows(r.plans)}
+      </div>
+      <div class="acts">${acts}</div>
+    </aside>`;
+  }
+  function requirements() {
+    const req = GP.requirements();
+    const all = req.gather.concat(req.craft);
+    let sel = all.find((r) => r.item.id === S.selReq) || all[0];
+    if (sel) S.selReq = sel.item.id;
+    const ready = req.craft.filter((c) => c.ready);
+    const vis = (r) => !(S.hideCovered && (r.recipe ? r.crafts <= 0 : r.missing <= 0));
+    const g = req.gather.filter(vis), c = (S.reqTab === 'ready' ? ready : req.craft).filter(vis);
+    const tab = (k, icon, label, n) => `<button class="tab ${S.reqTab === k ? 'on' : ''}" data-act="req-tab" data-id="${k}">${ic(icon)}<span>${label}<span class="c">${n}</span></span></button>`;
+    const gMissing = req.gather.filter((r) => r.missing > 0).length;
+    const showG = S.reqTab === 'all' || S.reqTab === 'gather', showC = S.reqTab !== 'gather';
+    return `<div class="col">
+      <div class="head"><h1>Requirements</h1>
+        <div class="tabrow">
+          ${tab('all', 'inv', 'All', all.length)}${tab('gather', 'gather', 'Gather', req.gather.length)}${tab('craft', 'craft', 'Craft', req.craft.length)}${tab('ready', 'ready', 'Ready', ready.length)}
+          <div class="cluster">
+            <button class="${S.hideCovered ? 'on' : ''}" data-act="hide-cov" title="${S.hideCovered ? 'Show' : 'Hide'} covered items" aria-label="Hide covered items">${ic('eye')}</button>
+            <span class="sep"></span>
+            <button data-act="go" data-id="plans" title="Add plan" aria-label="Add plan">${ic('plus')}</button>
+            <button data-act="go" data-id="inventory" title="Edit inventory" aria-label="Edit inventory">${ic('inv')}</button>
+          </div>
+        </div>
+      </div>
+      <div class="scroll" id="sc-req">
+        <div class="sec"><h2>Plans</h2><span>combined into the requirements below</span></div>
+        <div class="wides">${planStrip(sel)}</div>
+        <div class="bar"></div>
+        ${showG ? `<div class="sec"><h2>Gather</h2><span>${gMissing} still missing, ${req.gather.length - gMissing} covered by inventory</span></div>
+        <div class="grid">${g.map(gatherTile).join('') || ''}</div>${g.length ? '' : '<div class="empty">Nothing to gather.</div>'}` : ''}
+        ${showG && showC ? '<div style="height:18px"></div>' : ''}
+        ${showC ? `<div class="sec"><h2>Craft</h2><span>inputs first · ${ready.length} ready now</span></div>
+        <div class="grid">${c.map(craftTile).join('')}</div>${c.length ? '' : '<div class="empty">No craft is ready yet. Gather the missing raw materials first.</div>'}` : ''}
+      </div>
+    </div>${reqPanel(sel, req)}`;
+  }
+
+  /* ---------------- plans ---------------- */
+  function plans() {
+    const list = GP.plans();
+    const reached = list.filter((p) => p.reached).length;
+    return `<div class="col">
+      <div class="head" style="padding-right:40px"><h1>Plans</h1>
+        <div class="tabrow" style="height:auto;border:0;padding-bottom:4px;color:var(--muted);font-weight:500">${list.length} plans, ${reached} reached. Inventory is assigned to the oldest plan first.</div></div>
+      <div class="scroll" style="padding-right:40px" id="sc-plans">
+        <div class="addbar">
+          <label class="fld">Item<select id="np-item">${GP.items().map((i) => `<option value="${i.id}">${esc(i.name)}</option>`).join('')}</select></label>
+          <label class="fld">Target<input id="np-target" inputmode="numeric" placeholder="Amount"></label>
+          <label class="fld">Note<input id="np-note" placeholder="What is it for? Optional"></label>
+          <button class="btn pri" data-act="add-plan">${ic('plus')}Add plan</button>
+        </div>
+        <div class="rows">${list.map((p) => `<div class="row ${p.reached ? 'reached' : ''}">
+          ${pic(GP.item(p.item), 'sm')}
+          <div class="ttl">${p.note ? `<span class="pill violet">${esc(p.note)}</span>` : ''}<b>${esc(p.itemName)}</b></div>
+          <div class="prog"><div class="track"><i style="width:${Math.min(100, (p.assigned / p.target) * 100)}%"></i></div><div class="num">${f(p.assigned)} <em>/ ${f(p.target)}</em></div></div>
+          <div class="st">${p.reached ? `<span class="pill ready">${ic('tick')}Reached</span>` : `<span class="pill slate">${f(p.target - p.assigned)} to go</span>`}</div>
+          <button class="del" data-act="del-plan" data-id="${p.id}">${ic('x')}Delete</button>
+        </div>`).join('') || '<div class="empty">No plans yet. Add one above.</div>'}</div>
+      </div></div>`;
+  }
+
+  /* ---------------- items ---------------- */
+  function itemPanel(it) {
+    const recs = GP.recipesOf(it.id), raw = !recs.length, used = GP.usedIn(it.id);
+    const myPlans = GP.plans().filter((p) => p.item === it.id);
+    const recHtml = recs.map((r) => `<div class="rec ${r.isDefault ? 'def' : ''}">
+        <div class="top"><b>Makes ${f(r.output)} per craft</b>${r.isDefault ? `<span class="pill violet">${ic('tick')}Default recipe</span>` : `<button class="btn" data-act="set-default" data-id="${r.id}">Make default</button>`}</div>
+        <div class="ins">${r.inputs.map((i) => `<span class="chipx">${pic(i.item, 'xs')}${f(i.perCraft)} <em>${esc(i.item.name)}</em></span>`).join('')}</div><div class="ins" style="margin-top:6px">
+          <span class="mk">makes</span><span class="chipx out">${pic(it, 'xs')}${f(r.output)} <em style="color:#fef2c7">${esc(it.name)}</em></span></div>
+      </div>`).join('');
+    return `<aside class="panel"><div class="body" id="sc-ipanel">
+      <div class="ph">${pic(it, 'xl')}<div><h2>${esc(it.name)}</h2><p>${GP.inv(it.id) ? `${f(GP.inv(it.id))} in inventory` : 'None in inventory'}</p><span class="pill slate">${raw ? 'Raw material' : 'Crafted'}</span></div></div>
+      <div class="pt">Recipes <span>${raw ? '' : recs.length > 1 ? 'the default recipe is used in the calculation' : 'one recipe, always the default'}</span></div>
+      ${raw ? `<p class="note" style="margin-top:0">No recipe. ${esc(it.name)} is a raw material and can only be gathered.</p>` : `<div class="stack">${recHtml}</div>`}
+      <div class="pt">Used in <span>${used.length || ''}</span></div>
+      ${used.length ? `<div class="used">${used.map((u) => `<button class="chipx" data-act="sel-item" data-id="${u.id}">${pic(u, 'xs')}${esc(u.name)}</button>`).join('')}</div>` : `<p class="note" style="margin-top:0">Not an input of any recipe.</p>`}
+      <div class="pt">Plans <span>${myPlans.length || ''}</span></div>
+      ${myPlans.length ? planRows(myPlans) : `<p class="note" style="margin-top:0">No plan names this item.</p>`}
+    </div></aside>`;
+  }
+  function items() {
+    const all = GP.items(), q = S.q.trim().toLowerCase();
+    const raws = all.filter((i) => GP.isRaw(i.id)).length;
+    const list = all.filter((i) => (S.itemTab === 'all' || (S.itemTab === 'raw') === GP.isRaw(i.id)) && (!q || i.name.toLowerCase().includes(q)));
+    const sel = GP.item(S.selItem) || all[0];
+    const tab = (k, icon, label, n) => `<button class="tab ${S.itemTab === k ? 'on' : ''}" data-act="item-tab" data-id="${k}" style="width:118px">${ic(icon)}<span>${label}<span class="c">${n}</span></span></button>`;
+    return `<div class="col">
+      <div class="head"><h1>Items</h1>
+        <div class="tabrow">${tab('all', 'inv', 'All', all.length)}${tab('raw', 'raw', 'Raw materials', raws)}${tab('crafted', 'craft', 'Crafted', all.length - raws)}
+          <label class="search">${ic('search')}<input id="item-q" value="${esc(S.q)}" placeholder="Search items" aria-label="Search items"></label></div></div>
+      <div class="scroll" id="sc-items">
+        <div class="grid">${list.map((i) => { const n = GP.recipesOf(i.id).length; return `<button class="tile ${sel.id === i.id ? 'sel' : ''}" data-act="sel-item" data-id="${i.id}">
+          ${pic(i)}${n > 1 ? `<span class="flag cov" style="padding-left:8px">${n} recipes</span>` : ''}
+          <div class="nm">${esc(i.name)}</div>
+          <div class="kv"><span>${n ? 'Crafted' : 'Raw material'}</span></div>
+          <div class="kv"><span>Have</span><b>${f(GP.inv(i.id))}</b></div>
+        </button>`; }).join('')}</div>
+        ${list.length ? '' : `<div class="empty">No item matches “${esc(S.q)}”.</div>`}
+      </div></div>${itemPanel(sel)}`;
+  }
+
+  /* ---------------- inventory ---------------- */
+  function inventory() {
+    const req = GP.requirements(), need = {};
+    req.gather.concat(req.craft).forEach((r) => { need[r.item.id] = r.need; });
+    const all = GP.items();
+    const owned = all.filter((i) => GP.inv(i.id) > 0).length, planned = all.filter((i) => need[i.id]).length;
+    const list = all.filter((i) => S.invTab === 'all' || (S.invTab === 'owned' ? GP.inv(i.id) > 0 : !!need[i.id]));
+    const tab = (k, icon, label, n) => `<button class="tab ${S.invTab === k ? 'on' : ''}" data-act="inv-tab" data-id="${k}" style="width:118px">${ic(icon)}<span>${label}<span class="c">${n}</span></span></button>`;
+    return `<div class="col">
+      <div class="head" style="padding-right:40px"><h1>Inventory</h1>
+        <div class="tabrow">${tab('all', 'inv', 'All', all.length)}${tab('owned', 'tick', 'Owned', owned)}${tab('needed', 'req', 'In requirements', planned)}</div></div>
+      <div class="scroll" style="padding-right:40px" id="sc-inv">
+        <div class="grid wide8">${list.map((i) => { const n = need[i.id], have = GP.inv(i.id); return `<div class="tile" style="cursor:default">
+          ${pic(i)}
+          <div class="nm">${esc(i.name)}</div>
+          <div class="kv">${n ? `<span class="${have >= n ? 'ok' : ''}" style="display:inline-flex;gap:4px;align-items:center">${ic('tick')}need</span><b>${f(n)}</b>` : `<span>Not needed</span>`}</div>
+          <div class="well slot step"><button data-act="inv-step" data-id="${i.id}" data-n="-1" aria-label="One less ${esc(i.name)}">−</button><input id="inv-${i.id}" data-inv="${i.id}" inputmode="decimal" value="${f(have)}" aria-label="${esc(i.name)} owned"><button data-act="inv-step" data-id="${i.id}" data-n="1" aria-label="One more ${esc(i.name)}">+</button></div>
+        </div>`; }).join('')}</div>
+        ${list.length ? '' : '<div class="empty">Nothing here.</div>'}
+      </div></div>`;
+  }
+
+  /* ---------------- library ---------------- */
+  function mosaic(g) {
+    let s = [...g.id].reduce((a, c) => a * 31 + c.charCodeAt(0), 7) >>> 0;
+    const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+    let h = '';
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 12; c++) {
+      const l = 20 + r * 3 + Math.floor(rnd() * 4) * 4, sat = 30 + Math.floor(rnd() * 3) * 6;
+      h += `<i style="background:hsl(${g.hue + (rnd() < .18 ? 24 : 0)} ${sat}% ${l}%)"></i>`;
+    }
+    return h;
+  }
+  function library() {
+    const stats = (g) => g.stats || { items: GP.items().length, recipes: GP.items().reduce((n, i) => n + GP.recipesOf(i.id).length, 0), plans: GP.plans().length };
+    return `<div class="col">
+      <div class="head" style="padding-right:40px"><h1>Game library</h1>
+        <div class="tabrow" style="height:auto;border:0;padding-bottom:4px;color:var(--muted);font-weight:500">${GP.games.length} games. Items, recipes, inventory and plans belong to one game each.</div></div>
+      <div class="scroll" style="padding-right:40px">
+        <div class="games">${GP.games.map((g) => { const st = stats(g), cur = g === GP.currentGame; return `<button class="game ${cur ? 'cur' : ''}" data-act="open-game" data-id="${g.id}" ${cur ? '' : 'title="The sample data covers Hollowdeep only"'}>
+          <div class="thumb">${mosaic(g)}<span class="ini">${GP.initials(g.title)}</span>${cur ? '<span class="pill violet">Open</span>' : ''}</div>
+          <div class="gt"><b>${esc(g.title)}</b><span>${esc(g.blurb)}</span>
+            <div class="counts"><div><b>${st.items}</b>items</div><div><b>${st.recipes}</b>recipes</div><div><b>${st.plans}</b>plans</div></div></div>
+        </button>`; }).join('')}
+          <button class="game add" data-act="noop"><span class="plus">${ic('plus')}</span>Add game<small>A thumbnail is optional. Without one the game gets a tile pattern in its own colour.</small></button>
+        </div>
+      </div></div>`;
+  }
+
+  /* ---------------- render ---------------- */
+  const SCREENS = { library, requirements, plans, items, inventory };
+  function render() {
+    const ae = document.activeElement, fid = ae && ae.id, pos = ae && ae.selectionStart, val = ae && ae.value;
+    const keep = {};
+    document.querySelectorAll('[id^="sc-"]').forEach((e) => { keep[e.id] = e.scrollTop; });
+    document.getElementById('side').innerHTML = side();
+    document.getElementById('main').innerHTML = SCREENS[S.route]();
+    Object.keys(keep).forEach((id) => { const e = document.getElementById(id); if (e) e.scrollTop = keep[id]; });
+    if (fid) {
+      const e = document.getElementById(fid);
+      if (e) { if (e.dataset.gather && val) e.value = val; e.focus(); try { e.setSelectionRange(pos, pos); } catch (_) {} }
+    }
+  }
+  function route() {
+    const h = location.hash.replace('#', '');
+    S.route = ROUTES.includes(h) ? h : 'requirements';
+    render();
+  }
+  function gather(id, input) {
+    const n = parseFloat(String(input.value).replace(',', '.'));
+    if (!(n > 0)) { input.focus(); return; }
+    input.value = '';
+    GP.addInv(id, n);
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]');
+    if (!el) return;
+    const act = el.dataset.act, id = el.dataset.id;
+    if (act === 'sel-req') {
+      if (S.selReq === id) return;
+      const req = GP.requirements();
+      if (!req.gather.concat(req.craft).some((r) => r.item.id === id)) return;
+      S.selReq = id; render();
+    } else if (act === 'craft') { e.stopPropagation(); S.selReq = id; if (!GP.craft(id, +el.dataset.n)) render(); }
+    else if (act === 'gather') { S.selReq = id; gather(id, el.parentNode.querySelector('input')); }
+    else if (act === 'gather-panel') gather(id, document.getElementById('pg-' + id));
+    else if (act === 'req-tab') { S.reqTab = id; render(); }
+    else if (act === 'hide-cov') { S.hideCovered = !S.hideCovered; render(); }
+    else if (act === 'go') location.hash = id;
+    else if (act === 'item-tab') { S.itemTab = id; render(); }
+    else if (act === 'inv-tab') { S.invTab = id; render(); }
+    else if (act === 'sel-item') { S.selItem = id; if (S.route !== 'items') location.hash = 'items'; else render(); }
+    else if (act === 'set-default') GP.setDefault(id);
+    else if (act === 'inv-step') GP.addInv(id, +el.dataset.n);
+    else if (act === 'del-plan') GP.deletePlan(id);
+    else if (act === 'add-plan') {
+      const t = parseFloat(document.getElementById('np-target').value);
+      if (!(t > 0)) { document.getElementById('np-target').focus(); return; }
+      GP.addPlan(document.getElementById('np-item').value, t, document.getElementById('np-note').value.trim());
+    } else if (act === 'open-game') { if (id === GP.currentGame.id) location.hash = 'requirements'; }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const t = e.target;
+    if (t.dataset && t.dataset.gather) gather(t.dataset.gather, t);
+    else if (t.dataset && t.dataset.inv) t.blur();
+    else if (t.id === 'np-target' || t.id === 'np-note') document.querySelector('[data-act="add-plan"]').click();
+  });
+  document.addEventListener('input', (e) => { if (e.target.id === 'item-q') { S.q = e.target.value; render(); } });
+  document.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.dataset && t.dataset.inv) GP.setInv(t.dataset.inv, parseFloat(String(t.value).replace(',', '.')) || 0);
+  });
+
+  GP.on(render);
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+</body>
+</html>

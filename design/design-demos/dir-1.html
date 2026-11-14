@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Game Planner — A · Wide tiles</title>
+<meta name="viewport" content="width=1440">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,500;6..12,600;6..12,700;6..12,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#0f1a2c; --side:#16233b; --tile:#17243d; --tile-hi:#1d2b4a; --edge:#22314f; --edge-hi:#2c3d63;
+  --well:#0a1321; --well-edge:#1a2742;
+  --text:#ffffff; --soft:#c9d3e6; --muted:#93a4c1;
+  --violet:#7c5cff; --violet-fill:#6447e8; --violet-text:#b3a3ff; --violet-tint:#2a2560;
+  --gold:#d9a441; --green:#6fd9a9; --green-tint:#143a36; --rose:#ff9aa8; --red:#e5484d; --slate:#2b3b5e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--page)}
+body{font-family:"Nunito Sans",system-ui,"Segoe UI",Arial,sans-serif;font-size:14px;font-weight:600;color:var(--text);
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+svg{display:block;flex:none}
+#app{width:100vw;height:100vh;min-width:1440px;display:grid;grid-template-columns:224px 1fr}
+
+/* ---------- sidebar ---------- */
+.side{background:var(--side);display:flex;flex-direction:column;padding:22px 20px 16px;min-height:0}
+.gamechip{align-self:center;display:flex;align-items:center;gap:8px;height:30px;padding:0 14px 0 10px;border-radius:15px;
+  background:var(--page);font-size:14px;font-weight:800;color:var(--text)}
+.gamechip:hover{background:#0b1524}
+.gamechip i{width:14px;height:14px;border-radius:4px;flex:none}
+.brand{margin:18px 0 22px;text-align:center;font-size:23px;font-weight:800;letter-spacing:-.2px;line-height:1}
+.brand span{color:var(--violet-text)}
+.nav{display:flex;flex-direction:column;gap:6px}
+.nav a{display:flex;align-items:center;gap:13px;height:44px;padding:0 14px;border-radius:10px;text-decoration:none;
+  color:var(--muted);font-size:17px;font-weight:700}
+.nav a:hover{color:var(--soft)}
+.nav a.on{background:var(--page);color:var(--text)}
+.rule{position:relative;height:1px;margin:18px 8px;background:linear-gradient(90deg,rgba(217,164,65,0),rgba(217,164,65,.75) 50%,rgba(217,164,65,0))}
+.rule svg{position:absolute;left:50%;top:-4px;margin-left:-4px}
+.side .foot{margin-top:auto;text-align:center;color:var(--muted);font-size:12px;font-weight:700;line-height:1.5}
+
+/* ---------- main ---------- */
+main{display:flex;flex-direction:column;min-width:0;min-height:0;height:100vh}
+.head{padding:22px 40px 0;flex:none}
+.titlerow{display:flex;align-items:baseline;gap:14px;height:28px}
+h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.1px}
+.meta{color:var(--muted);font-size:14px;font-weight:600}
+.tabrow{display:flex;align-items:center;margin-top:10px;border-bottom:1px solid #1b2942;height:57px}
+.tab{position:relative;width:98px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  border-radius:10px 10px 0 0;color:var(--muted);font-size:12px;font-weight:800}
+.tab:hover{color:var(--soft)}
+.tab em{font-style:normal;color:var(--violet-text);margin-left:4px}
+.tab.on{color:var(--text);background:linear-gradient(180deg,#22305a,#17233f)}
+.tab.on::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2px;border-radius:1px;background:var(--violet)}
+.tools{margin-left:auto;display:flex;align-items:center;gap:4px;padding:5px 8px;border-radius:10px;background:#152038}
+.tool{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:var(--muted)}
+.tool:hover{color:var(--text);background:#1c2a47}
+.tool.on{color:var(--text);background:var(--violet-tint)}
+.search{display:flex;align-items:center;gap:8px;height:34px;width:250px;padding:0 10px;border-radius:8px;background:var(--well);border:1px solid var(--well-edge);color:var(--muted)}
+.search input{flex:1;min-width:0;background:none;border:0;outline:0;font-size:14px;font-weight:700;color:var(--text)}
+.search input::placeholder{color:var(--muted)}
+.pane{flex:1;min-height:0;overflow-y:auto;padding:12px 40px 16px}
+.pane::-webkit-scrollbar{width:10px}.pane::-webkit-scrollbar-thumb{background:#22314f;border-radius:5px}
+
+/* ---------- shared bits ---------- */
+.pic{display:inline-flex;align-items:center;justify-content:center;flex:none;border-radius:8px;overflow:hidden}
+.pic img{image-rendering:pixelated;display:block}
+.pic b{font-weight:800;color:#fff;letter-spacing:.5px}
+.t-raw{background:linear-gradient(160deg,#4a7d6d,#3b655e)}
+.t-mid{background:linear-gradient(160deg,#4c6d9a,#3e5a86)}
+.t-end{background:linear-gradient(160deg,#7765ab,#625396)}
+.sec{display:flex;align-items:baseline;gap:10px;height:20px;margin:0 0 8px}
+.sec h2{margin:0;font-size:15px;font-weight:800}
+.sec span{color:var(--muted);font-size:13px}
+.sec + .grid2, .grid2 + .sec{}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-bottom:12px}
+.badge{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 9px;border-radius:6px;font-size:13px;font-weight:800;white-space:nowrap;background:var(--slate);color:var(--soft)}
+.badge.ready{background:var(--green-tint);color:var(--green)}
+.badge.loop{background:#3a2d16;color:#f0c46c}
+.badge.violet{background:var(--violet-fill);color:#fff}
+.badge.wait{background:#3a1c2e;color:var(--rose)}
+.btn{height:34px;padding:0 14px;border-radius:8px;font-size:14px;font-weight:800;white-space:nowrap;background:var(--slate);color:#fff}
+.btn:hover{background:#34466e}
+.btn.pri{background:var(--violet-fill)}
+.btn.pri:hover{background:#7358f2}
+.btn:disabled{background:#1a2640;color:#7384a3;cursor:default}
+.well{height:34px;border-radius:8px;background:var(--well);border:1px solid var(--well-edge);color:#fff;font-size:15px;font-weight:800;text-align:center;outline:0;padding:0 8px}
+.well:focus{border-color:var(--violet)}
+.well::placeholder{color:var(--muted);font-weight:700}
+input[type=number]::-webkit-inner-spin-button{display:none}
+.grow{flex:1}
+
+/* ---------- wide tile ---------- */
+.wt{display:grid;grid-template-columns:64px minmax(0,1fr);grid-template-rows:64px 34px;gap:8px 12px;padding:10px;
+  background:var(--tile);border:1px solid var(--edge);border-radius:10px}
+.wt.hot{background:linear-gradient(180deg,#1f2c4f,#1a2644);border-color:var(--edge-hi)}
+.wt.done{background:#121d32;border-color:#1b2841}
+.wt.done .nm,.wt.done .amt b{color:var(--soft)}
+.wt-main{min-width:0;display:flex;flex-direction:column;justify-content:space-between;padding:1px 0 2px}
+.l1{display:flex;align-items:center;gap:8px;height:30px;white-space:nowrap;min-width:0}
+.nm{font-size:17px;font-weight:800}
+.makes{color:var(--soft);font-size:14px;font-weight:700}
+.surplus{color:#f0c46c;font-size:14px;font-weight:700}
+.amt{display:flex;align-items:baseline;gap:6px;color:var(--muted);font-size:13px;font-weight:700}
+.amt b{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.l2{display:flex;align-items:center;gap:10px;height:24px;min-width:0}
+.pills{display:flex;align-items:center;gap:5px;flex:1 1 0;min-width:0;overflow:hidden;white-space:nowrap}
+.pp{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px 0 3px;border-radius:6px;background:#22304f;color:var(--soft);font-size:12px;font-weight:700;flex:none}
+.pp .pic{border-radius:4px}
+.pp.direct{background:var(--violet-tint);color:#e4deff}
+.pp.reached{color:var(--green)}
+.pp.more{padding:0 8px;color:var(--muted)}
+.looptxt{flex:none;color:#e3c485;font-size:13px;font-weight:700}
+.wt-foot{grid-column:1/-1;display:flex;align-items:center;gap:8px;min-width:0}
+.chip{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 10px 0 3px;border-radius:8px;background:var(--well);border:1px solid var(--well-edge);white-space:nowrap;flex:none}
+.chip .pic{border-radius:6px}
+.chip .cn{font-size:13px;font-weight:700;color:var(--soft)}
+.chip .cv{font-size:14px;font-weight:800}
+.chip .cv i{font-style:normal;color:var(--muted);font-weight:700}
+.ok{color:var(--green)} .short{color:var(--rose)}
+.own{font-size:14px;font-weight:700;color:var(--muted);white-space:nowrap}
+.own b{color:#fff;font-weight:800}
+.bar{height:6px;border-radius:3px;background:var(--well);overflow:hidden;flex:1;max-width:190px}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--violet)}
+.bar.full i{background:var(--green)}
+.glabel{color:var(--muted);font-size:13px;font-weight:700}
+
+/* ---------- plans ---------- */
+.addbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;background:#121d32;border:1px solid #1b2841;margin-bottom:14px}
+.addbar label{color:var(--muted);font-size:13px;font-weight:700;margin-left:6px}
+.addbar select.well{text-align:left;width:190px;padding:0 10px;appearance:none}
+.addbar .note{text-align:left;flex:1;padding:0 12px;font-weight:700}
+.prow{display:flex;align-items:center;gap:14px;height:60px;padding:0 12px 0 10px;margin-bottom:6px;border-radius:10px;
+  background:linear-gradient(180deg,#1f2c4f,#1a2644);border:1px solid var(--edge-hi)}
+.prow.done{background:#121d32;border-color:#1b2841}
+.prow .nm{width:128px}
+.prow .note{flex:1;min-width:0;color:var(--soft);font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .tg{width:96px;color:var(--muted);font-size:13px;font-weight:700}
+.prow .tg b{display:inline-block;color:#fff;font-size:18px;font-weight:800;margin-left:6px}
+.prow .bar{width:220px;max-width:none;flex:none;height:8px;border-radius:4px}
+.prow .cnt{width:76px;font-size:14px;font-weight:800;color:var(--soft)}
+.prow .st{width:104px;display:flex;justify-content:flex-end}
+.caption{color:var(--muted);font-size:13px;margin:10px 2px 0}
+
+/* ---------- items ---------- */
+.split{display:grid;grid-template-columns:372px minmax(0,1fr);gap:20px;height:100%}
+.ilist{overflow-y:auto;min-height:0;padding-right:4px}
+.irow{display:flex;align-items:center;gap:12px;width:100%;height:52px;padding:0 12px 0 6px;margin-bottom:5px;border-radius:10px;
+  background:var(--tile);border:1px solid var(--edge);text-align:left}
+.irow:hover{background:var(--tile-hi)}
+.irow.on{background:linear-gradient(180deg,#22305a,#1b2748);border-color:var(--violet)}
+.irow .nm{font-size:16px;flex:1}
+.irow .kind{color:var(--muted);font-size:13px;font-weight:700}
+.detail{overflow-y:auto;min-height:0;padding-right:4px}
+.dhead{display:flex;gap:20px;align-items:center;margin-bottom:20px}
+.dhead h2{margin:0 0 8px;font-size:26px;font-weight:800}
+.dhead .tags{display:flex;gap:8px;align-items:center}
+.rcp{display:flex;align-items:center;gap:10px;padding:12px;margin-bottom:8px;border-radius:10px;background:var(--tile);border:1px solid var(--edge)}
+.rcp.def{background:linear-gradient(180deg,#1f2c4f,#1a2644);border-color:var(--violet)}
+.rcp .word{color:var(--muted);font-size:14px;font-weight:700;padding:0 4px}
+.bigchip{display:flex;align-items:center;gap:10px;height:52px;padding:0 14px 0 6px;border-radius:8px;background:var(--well);border:1px solid var(--well-edge)}
+.bigchip b{font-size:18px;font-weight:800}
+.bigchip span span{display:block;font-size:14px;font-weight:700;color:var(--soft);line-height:1.2}
+.bigchip small{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.bigchip.out{background:#141f38;border-color:var(--edge-hi)}
+.used{display:flex;gap:8px;flex-wrap:wrap}
+.used .chip{height:40px;padding-right:12px}
+.used .chip:hover{border-color:var(--edge-hi)}
+.note-p{color:var(--soft);font-size:15px;line-height:1.5;margin:0;max-width:560px}
+.empty{color:var(--muted);padding:18px 6px;font-size:14px}
+
+/* ---------- inventory ---------- */
+.tiles{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
+.it{width:112px;padding:7px;border-radius:10px;background:var(--tile);border:1px solid var(--edge);display:flex;flex-direction:column;align-items:center}
+.it .inm{margin-top:7px;font-size:13px;font-weight:800;white-space:nowrap}
+.it .need{display:flex;align-items:center;gap:5px;height:22px;color:var(--muted);font-size:12px;font-weight:700}
+.it .need.met{color:var(--green)}
+.it .well{width:96px;margin-top:3px}
+
+/* ---------- library ---------- */
+.games{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding-top:8px}
+.game{display:flex;flex-direction:column;border-radius:10px;background:var(--tile);border:1px solid var(--edge);overflow:hidden;text-align:left}
+.game:hover{border-color:var(--edge-hi)}
+.game.cur{border-color:var(--violet)}
+.thumb{height:150px;position:relative;display:flex;align-items:flex-end;padding:14px 16px}
+.thumb b{font-size:52px;font-weight:800;line-height:.9;color:rgba(255,255,255,.92);letter-spacing:-1px}
+.thumb .sq{position:absolute;border-radius:6px;background:rgba(255,255,255,.1)}
+.thumb .badge{position:absolute;right:12px;top:12px}
+.gbody{padding:14px 16px 16px}
+.gbody h3{margin:0 0 2px;font-size:18px;font-weight:800}
+.gbody p{margin:0 0 12px;color:var(--muted);font-size:14px}
+.counts{display:flex;gap:6px}
+.counts span{flex:1;padding:6px 0;border-radius:8px;background:var(--well);text-align:center;color:var(--muted);font-size:12px;font-weight:700}
+.counts b{display:block;color:#fff;font-size:17px;font-weight:800}
+.game.add{align-items:center;justify-content:center;gap:10px;min-height:270px;background:#121d32;color:var(--muted);font-size:16px;font-weight:800}
+.game.add:hover{color:#fff}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="side" id="side"></aside>
+  <main><header class="head" id="head"></header><section class="pane" id="pane"></section></main>
+</div>
+<script src="shared.js"></script><script src="icons.js"></script>
+<script>
+(function(){
+const f = GP.fmt;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SCREENS = ['library','requirements','plans','items','inventory'];
+const S = { reqTab:'all', hideCovered:false, planTab:'all', itemTab:'all', q:'', sel:'torch', invTab:'all', invNeeded:false };
+
+/* line icons: abstract UI symbols only */
+const P = {
+  req:'<path d="M4 5h4v4H4zM4 10h4v4H4zM4 15h4v4H4z" fill="currentColor" stroke="none"/><path d="M11 7h9M11 12h9M11 17h9"/>',
+  plans:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>',
+  items:'<path d="M12 3l8 9-8 9-8-9z"/><path d="M12 8l3.5 4-3.5 4-3.5-4z" fill="currentColor" stroke="none"/>',
+  inv:'<rect x="4" y="4" width="16" height="6" rx="1.5" fill="currentColor" stroke="none"/><rect x="4" y="12.5" width="7" height="7.5" rx="1.5"/><rect x="13" y="12.5" width="7" height="7.5" rx="1.5"/>',
+  lib:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="currentColor"/>',
+  all:'<path d="M5 5h3v3H5zM10.5 5h3v3h-3zM16 5h3v3h-3zM5 10.5h3v3H5zM10.5 10.5h3v3h-3zM16 10.5h3v3h-3zM5 16h3v3H5zM10.5 16h3v3h-3zM16 16h3v3h-3z" fill="currentColor" stroke="none"/>',
+  gather:'<path d="M12 3l8 9-8 9-8-9z"/>',
+  craft:'<rect x="9" y="3" width="6" height="6" rx="1" fill="currentColor"/><rect x="3" y="15" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M12 9v3M6 15v-3h12v3"/>',
+  eye:'<path d="M2.5 12s3.5-6.5 9.5-6.5 9.500 6.500 9.500 6.500-3.500 6.500-9.500 6.500S2.500 12 2.500 12z"/><circle cx="12" cy="12" r="2.8" fill="currentColor" stroke="none"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  search:'<circle cx="11" cy="11" r="6"/><path d="M16 16l4.500 4.500"/>',
+  tick:'<path d="M5 12.500l4.500 4.500L19 7"/>',
+  tickc:'<circle cx="12" cy="12" r="8.500"/><path d="M8 12.300l2.800 2.800 5.200-5.600"/>',
+  half:'<circle cx="12" cy="12" r="8.500"/><path d="M12 3.500a8.500 8.500 0 010 17z" fill="currentColor" stroke="none"/>',
+};
+const ic = (n, s=22, w=2) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]}</svg>`;
+
+const tier = (id) => GP.isRaw(id) ? 'raw' : (GP.usedIn(id).length ? 'mid' : 'end');
+const ICON_PX = {18:12, 28:24, 40:36, 64:48, 96:72, 120:96};
+function pic(it, sq){
+  const u = GP.icon(it.id), px = ICON_PX[sq];
+  const fs = sq <= 18 ? 12 : Math.max(12, Math.round(sq*0.36));
+  const label = sq <= 18 ? it.name[0] : GP.initials(it.name);
+  return `<span class="pic t-${tier(it.id)}" style="width:${sq}px;height:${sq}px" title="${esc(it.name)}">${u ? `<img src="${u}" width="${px}" height="${px}" alt="">` : `<b style="font-size:${fs}px">${label}</b>`}</span>`;
+}
+const recipeCount = () => GP.items().reduce((n,i) => n + GP.recipesOf(i.id).length, 0);
+const route = () => { const h = location.hash.slice(1); return SCREENS.includes(h) ? h : 'requirements'; };
+
+/* ---------- sidebar ---------- */
+function side(r){
+  const g = GP.currentGame;
+  const link = (id, icon, label) => `<a href="#${id}" class="${r===id?'on':''}">${ic(icon)}${label}</a>`;
+  const rule = `<div class="rule"><svg width="8" height="9" viewBox="0 0 8 9"><path d="M4 0l4 4.500-4 4.500-4-4.500z" fill="#d9a441"/></svg></div>`;
+  document.getElementById('side').innerHTML = `
+    <a class="gamechip" href="#library" style="text-decoration:none" title="Back to the game library"><i style="background:linear-gradient(160deg,hsl(${g.hue} 45% 52%),hsl(${g.hue} 50% 36%))"></i>${esc(g.title)}</a>
+    <div class="brand">Game <span>Planner</span></div>
+    <nav class="nav">
+      ${link('requirements','req','Requirements')}
+      ${link('plans','plans','Plans')}
+      ${link('items','items','Items')}
+      ${link('inventory','inv','Inventory')}
+    </nav>
+    ${rule}
+    <nav class="nav">${link('library','lib','Game library')}</nav>
+    ${rule}
+    <div class="foot">${esc(g.title)}<br>${GP.items().length} items · ${recipeCount()} recipes · ${GP.plans().length} plans</div>`;
+}
+
+function head(title, meta, tabs, cur, tools){
+  document.getElementById('head').innerHTML = `
+    <div class="titlerow"><h1>${title}</h1><span class="meta">${meta||''}</span></div>
+    <div class="tabrow">
+      ${tabs.map(t => `<button class="tab ${t.id===cur?'on':''}" data-act="tab" data-id="${t.id}">${ic(t.icon)}<span>${t.label}${t.n!=null?`<em>${t.n}</em>`:''}</span></button>`).join('')}
+      ${tools ? `<div class="tools">${tools}</div>` : ''}
+    </div>`;
+}
+
+/* ---------- requirements ---------- */
+function planPills(row, PV){
+  const list = row.plans.map(p => PV.find(v => v.id === p.id)).filter(Boolean)
+    .sort((a,b) => (b.item===row.item.id) - (a.item===row.item.id));
+  return `<div class="pills">${list.map(p => {
+    const direct = p.item === row.item.id;
+    const label = p.note || p.itemName;
+    const tip = `${p.itemName} plan, target ${f(p.target)}${p.note?' — '+p.note:''}${p.reached?' (reached)':''}`;
+    return `<span class="pp ${direct?'direct':''} ${p.reached?'reached':''}" title="${esc(tip)}">${pic(GP.item(p.item),18)}${esc(label)}${p.reached?ic('tick',13,3)+'reached':''}</span>`;
+  }).join('')}<span class="pp more" style="display:none"></span></div>`;
+}
+function gatherTile(g, PV){
+  const covered = g.missing <= 0;
+  const pct = g.need > 0 ? Math.min(100, g.have / g.need * 100) : 100;
+  return `<div class="wt ${covered?'done':''}">
+    ${pic(g.item,64)}
+    <div class="wt-main">
+      <div class="l1"><span class="nm">${esc(g.item.name)}</span>
+        ${g.loop?'<span class="badge loop">Recipe loop, so gathered</span>':''}
+        <span class="grow"></span>
+        ${covered ? `<span class="badge ready">${ic('tick',14,3)}Covered by inventory</span>` : `<span class="amt"><b>${f(g.missing)}</b>missing</span>`}
+      </div>
+      <div class="l2">${planPills(g, PV)}${g.loop?`<span class="looptxt">${g.loop.map(esc).join(' → ')}</span>`:''}</div>
+    </div>
+    <div class="wt-foot">
+      <span class="own"><b>${f(g.have)}</b> owned of ${f(g.need)}</span>
+      <span class="bar ${covered?'full':''}"><i style="width:${pct}%"></i></span>
+      <span class="grow"></span>
+      <span class="glabel">Gathered</span>
+      <input class="well" style="width:76px" type="number" min="0" step="any" placeholder="0" data-gather="${g.item.id}" aria-label="Amount of ${esc(g.item.name)} gathered">
+      <button class="btn" data-act="gather" data-id="${g.item.id}">Add to inventory</button>
+    </div>
+  </div>`;
+}
+function craftTile(c, PV){
+  const covered = c.crafts === 0;
+  const state = covered ? `<span class="badge ready">${ic('tick',14,3)}Covered by inventory</span>`
+    : c.ready ? `<span class="badge ready">${c.canCraft < c.crafts ? `Ready for ${c.canCraft} of ${c.crafts}` : 'Ready'}</span>`
+    : `<span class="badge wait">Not ready</span>`;
+  return `<div class="wt ${covered?'done':c.ready?'hot':''}">
+    ${pic(c.item,64)}
+    <div class="wt-main">
+      <div class="l1"><span class="nm">${esc(c.item.name)}</span>
+        ${covered ? '' : `<span class="badge violet">${c.crafts} ${c.crafts===1?'craft':'crafts'}</span><span class="makes">makes ${f(c.makes)}</span>${c.surplus>0?`<span class="surplus">surplus ${f(c.surplus)}</span>`:''}`}
+        <span class="grow"></span>${state}
+      </div>
+      <div class="l2">${planPills(c, PV)}</div>
+    </div>
+    <div class="wt-foot">
+      ${c.inputs.map(i => `<span class="chip" title="${esc(i.item.name)}: ${f(i.perCraft)} per craft, ${f(i.total)} needed, ${f(i.have)} owned">${pic(i.item,28)}<span class="cn">${esc(i.item.name)}</span><span class="cv"><span class="${i.have + 1e-9 >= i.total ? 'ok':'short'}">${f(i.have)}</span> <i>of ${f(i.total)}</i></span></span>`).join('')}
+      <span class="grow"></span>
+      <button class="btn" data-act="craft" data-id="${c.item.id}" data-n="1" ${c.canCraft<1?'disabled':''}>Craft 1</button>
+      <button class="btn pri" data-act="craft" data-id="${c.item.id}" data-n="${c.canCraft}" ${c.canCraft<1?'disabled':''}>Craft all (${c.canCraft})</button>
+    </div>
+  </div>`;
+}
+function requirements(){
+  const R = GP.requirements(), PV = GP.plans();
+  const toGather = R.gather.filter(g => g.missing > 0), covered = R.gather.length - toGather.length;
+  const toCraft = R.craft.filter(c => c.crafts > 0), ready = toCraft.filter(c => c.ready).length;
+  const reached = PV.filter(p => p.reached).length;
+  head('Requirements', `${PV.length} plans combined · ${reached} reached`, [
+    {id:'all', icon:'all', label:'All', n:toGather.length + toCraft.length},
+    {id:'gather', icon:'gather', label:'Gather', n:toGather.length},
+    {id:'craft', icon:'craft', label:'Craft', n:toCraft.length},
+  ], S.reqTab,
+    `<button class="tool ${S.hideCovered?'':'on'}" data-act="covered" title="${S.hideCovered?'Show':'Hide'} what inventory already covers">${ic('eye')}</button>
+     <button class="tool" data-act="goplans" title="Add plan">${ic('plus')}</button>`);
+  const gs = S.hideCovered ? toGather : R.gather, cs = S.hideCovered ? toCraft : R.craft;
+  let h = '';
+  if (!PV.length) h = `<div class="empty">No plans yet. Add a plan and its requirements appear here.</div>`;
+  if (PV.length && S.reqTab !== 'craft') h += `<div class="sec"><h2>Gather</h2><span>${toGather.length} raw ${toGather.length===1?'material':'materials'} still missing${covered?` · ${covered} covered by inventory`:''}</span></div>
+    <div class="grid2">${gs.map(g => gatherTile(g, PV)).join('') || '<div class="empty">Nothing left to gather.</div>'}</div>`;
+  if (PV.length && S.reqTab !== 'gather') h += `<div class="sec"><h2>Craft</h2><span>${toCraft.reduce((n,c)=>n+c.crafts,0)} crafts across ${toCraft.length} items, inputs first · ${ready} ready now</span></div>
+    <div class="grid2">${cs.map(c => craftTile(c, PV)).join('') || '<div class="empty">Nothing left to craft.</div>'}</div>`;
+  document.getElementById('pane').innerHTML = h;
+  fitPills();
+}
+function fitPills(){
+  document.querySelectorAll('.pills').forEach(c => {
+    const ps = [...c.querySelectorAll('.pp:not(.more)')], more = c.querySelector('.more');
+    ps.forEach(p => p.style.display = ''); more.style.display = 'none';
+    let hid = 0;
+    while (c.scrollWidth > c.clientWidth + 1 && hid < ps.length){
+      const p = ps[ps.length - 1 - hid]; p.style.display = 'none'; hid++;
+      more.style.display = ''; more.textContent = `+${hid} more`;
+      more.title = ps.slice(ps.length - hid).map(x => x.title).join('\n');
+    }
+  });
+}
+
+/* ---------- plans ---------- */
+function plans(){
+  const PV = GP.plans(), reached = PV.filter(p => p.reached);
+  head('Plans', 'Inventory is assigned to the oldest plan first', [
+    {id:'all', icon:'all', label:'All', n:PV.length},
+    {id:'open', icon:'half', label:'In progress', n:PV.length - reached.length},
+    {id:'reached', icon:'tickc', label:'Reached', n:reached.length},
+  ], S.planTab, `<button class="tool" data-act="focusplan" title="Add plan">${ic('plus')}</button>`);
+  const list = PV.filter(p => S.planTab==='all' || (S.planTab==='reached') === p.reached);
+  document.getElementById('pane').innerHTML = `
+    <div class="addbar">
+      <label for="np-item">Item</label>
+      <select class="well" id="np-item">${GP.items().map(i => `<option value="${i.id}">${esc(i.name)}</option>`).join('')}</select>
+      <label for="np-target">Target</label>
+      <input class="well" id="np-target" type="number" min="1" placeholder="0" style="width:84px">
+      <label for="np-note">Note</label>
+      <input class="well note" id="np-note" placeholder="What is it for? Optional">
+      <button class="btn pri" data-act="addplan">Add plan</button>
+    </div>
+    ${list.map(p => {
+      const it = GP.item(p.item), pct = Math.min(100, p.assigned / p.target * 100);
+      return `<div class="prow ${p.reached?'done':''}">
+        ${pic(it,40)}<span class="nm">${esc(p.itemName)}</span>
+        <span class="note">${p.note ? esc(p.note) : ''}</span>
+        <span class="tg">Target<b>${f(p.target)}</b></span>
+        <span class="bar ${p.reached?'full':''}"><i style="width:${pct}%"></i></span>
+        <span class="cnt">${f(p.assigned)} of ${f(p.target)}</span>
+        <span class="st">${p.reached ? `<span class="badge ready">${ic('tick',14,3)}Reached</span>` : `<span class="badge">${f(p.target - p.assigned)} to go</span>`}</span>
+        <button class="tool" data-act="delplan" data-id="${p.id}" title="Delete plan">${ic('x',18)}</button>
+      </div>`;
+    }).join('') || '<div class="empty">No plans here.</div>'}
+    <p class="caption">A reached plan stays in the list until you delete it. Several plans may name the same item; their targets add up.</p>`;
+}
+
+/* ---------- items ---------- */
+function itemRows(){
+  const q = S.q.trim().toLowerCase();
+  const list = GP.items().filter(i => (S.itemTab==='all' || (S.itemTab==='raw') === GP.isRaw(i.id)) && i.name.toLowerCase().includes(q));
+  return list.map(i => {
+    const n = GP.recipesOf(i.id).length;
+    return `<button class="irow ${i.id===S.sel?'on':''}" data-act="sel" data-id="${i.id}">${pic(i,40)}<span class="nm">${esc(i.name)}</span><span class="kind">${n ? `Crafted · ${n} ${n===1?'recipe':'recipes'}` : 'Raw material'}</span></button>`;
+  }).join('') || `<div class="empty">No item matches “${esc(S.q)}”.</div>`;
+}
+function itemDetail(){
+  const it = GP.item(S.sel), rs = GP.recipesOf(it.id), used = GP.usedIn(it.id);
+  const uniq = used.filter((u,i) => used.findIndex(x => x.id===u.id) === i);
+  return `<div class="dhead">${pic(it,120)}<div><h2>${esc(it.name)}</h2>
+      <div class="tags"><span class="badge">${rs.length ? 'Crafted' : 'Raw material'}</span><span class="badge">${f(GP.inv(it.id))} in inventory</span>${rs.length>1?`<span class="badge">${rs.length} recipes</span>`:''}</div></div></div>
+    <div class="sec"><h2>${rs.length===1?'Recipe':'Recipes'}</h2><span>${rs.length>1?'The default recipe is the one the requirements use':rs.length?'Inputs and output per craft':''}</span></div>
+    ${rs.length ? rs.map(r => `<div class="rcp ${r.isDefault?'def':''}">
+        ${r.inputs.map(i => `<span class="bigchip">${pic(i.item,40)}<b>${f(i.perCraft)}</b><span><span>${esc(i.item.name)}</span><small>input per craft</small></span></span>`).join('')}
+        <span class="word">makes</span>
+        <span class="bigchip out">${pic(it,40)}<b>${f(r.output)}</b><span><span>${esc(it.name)}</span><small>output per craft</small></span></span>
+        <span class="grow"></span>
+        ${r.isDefault ? `<span class="badge violet">${ic('tick',14,3)}Default recipe</span>` : `<button class="btn" data-act="setdef" data-id="${r.id}">Make default</button>`}
+      </div>`).join('') : `<p class="note-p">${esc(it.name)} has no recipe, so it is a raw material: it can only be gathered.</p>`}
+    <div class="sec" style="margin-top:22px"><h2>Used in</h2><span>${uniq.length ? 'Items with a recipe that takes this as an input' : ''}</span></div>
+    ${uniq.length ? `<div class="used">${uniq.map(u => `<button class="chip" data-act="sel" data-id="${u.id}">${pic(u,28)}<span class="cn">${esc(u.name)}</span></button>`).join('')}</div>` : `<p class="note-p">No recipe uses ${esc(it.name)} as an input.</p>`}`;
+}
+function items(){
+  const all = GP.items(), raw = all.filter(i => GP.isRaw(i.id)).length;
+  head('Items', `${all.length} items · ${recipeCount()} recipes`, [
+    {id:'all', icon:'all', label:'All', n:all.length},
+    {id:'raw', icon:'gather', label:'Raw material', n:raw},
+    {id:'crafted', icon:'craft', label:'Crafted', n:all.length - raw},
+  ], S.itemTab, `<label class="search">${ic('search',18)}<input id="q" placeholder="Search items" value="${esc(S.q)}" autocomplete="off"></label>
+    <button class="tool" title="Add item">${ic('plus')}</button>`);
+  document.getElementById('pane').innerHTML = `<div class="split"><div class="ilist" id="ilist">${itemRows()}</div><div class="detail" id="detail">${itemDetail()}</div></div>`;
+}
+
+/* ---------- inventory ---------- */
+function inventory(){
+  const R = GP.requirements(), need = {};
+  R.gather.concat(R.craft).forEach(r => need[r.item.id] = r.need);
+  const all = GP.items(), raw = all.filter(i => GP.isRaw(i.id));
+  head('Inventory', 'What you own in this game', [
+    {id:'all', icon:'all', label:'All', n:all.length},
+    {id:'raw', icon:'gather', label:'Raw material', n:raw.length},
+    {id:'crafted', icon:'craft', label:'Crafted', n:all.length - raw.length},
+  ], S.invTab, `<button class="tool ${S.invNeeded?'on':''}" data-act="invneeded" title="Only items the plans need">${ic('req')}</button>`);
+  const tile = (i) => { const n = need[i.id] || 0, met = n > 0 && GP.inv(i.id) + 1e-9 >= n;
+    return `<div class="it">${pic(i,96)}<span class="inm">${esc(i.name)}</span>
+      <span class="need ${met?'met':''}" title="Needed across all plans">${ic('tickc',14,2.4)}${n ? 'need ' + f(n) : 'not needed'}</span>
+      <input class="well" type="number" min="0" step="any" value="${f(GP.inv(i.id))}" data-inv="${i.id}" aria-label="${esc(i.name)} owned"></div>`; };
+  const group = (title, sub, list) => { list = list.filter(i => !S.invNeeded || need[i.id]);
+    return `<div class="sec"><h2>${title}</h2><span>${sub}</span></div><div class="tiles">${list.map(tile).join('') || '<div class="empty">Nothing here.</div>'}</div>`; };
+  let h = '';
+  if (S.invTab !== 'crafted') h += group('Raw material', 'Gathered, never crafted', raw);
+  if (S.invTab !== 'raw') h += group('Crafted', 'Made by a recipe', all.filter(i => !GP.isRaw(i.id)));
+  document.getElementById('pane').innerHTML = h + `<p class="caption">Type an amount and press Enter. The requirements recalculate from what you own.</p>`;
+}
+
+/* ---------- library ---------- */
+function library(){
+  head('Game library', `${GP.games.length} games`, [{id:'all', icon:'lib', label:'All games', n:GP.games.length}], 'all',
+    `<button class="tool" title="Add game">${ic('plus')}</button>`);
+  document.getElementById('pane').innerHTML = `<div class="games">${GP.games.map(g => {
+    const cur = g === GP.currentGame;
+    const st = g.stats || { items: GP.items().length, recipes: recipeCount(), plans: GP.plans().length };
+    return `<button class="game ${cur?'cur':''}" data-act="open" data-id="${g.id}">
+      <div class="thumb" style="background:linear-gradient(155deg,hsl(${g.hue} 34% 40%),hsl(${g.hue} 42% 20%))">
+        <span class="sq" style="width:72px;height:72px;right:28px;top:44px"></span><span class="sq" style="width:36px;height:36px;right:112px;top:28px"></span><span class="sq" style="width:24px;height:24px;right:118px;top:96px"></span>
+        ${cur?'<span class="badge violet">Open now</span>':''}<b>${GP.initials(g.title)}</b></div>
+      <div class="gbody"><h3>${esc(g.title)}</h3><p>${esc(g.blurb)}</p>
+        <div class="counts"><span><b>${st.items}</b>items</span><span><b>${st.recipes}</b>recipes</span><span><b>${st.plans}</b>plans</span></div></div>
+    </button>`; }).join('')}
+    <button class="game add">${ic('plus',30)}Add game</button></div>`;
+}
+
+/* ---------- render + events ---------- */
+const VIEW = { library, requirements, plans, items, inventory };
+function render(){
+  const r = route(), pane = document.getElementById('pane'), top = pane.scrollTop;
+  side(r); VIEW[r](); pane.scrollTop = top;
+}
+GP.on(render);
+addEventListener('hashchange', () => { document.getElementById('pane').scrollTop = 0; render(); });
+
+function doGather(id){
+  const el = document.querySelector(`[data-gather="${id}"]`), v = parseFloat(el.value);
+  if (v > 0) GP.addInv(id, v); else el.focus();
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act, id = b.dataset.id, r = route();
+  if (a === 'tab'){ ({requirements:'reqTab', plans:'planTab', items:'itemTab', inventory:'invTab'})[r] && (S[({requirements:'reqTab', plans:'planTab', items:'itemTab', inventory:'invTab'})[r]] = id); render(); }
+  else if (a === 'covered'){ S.hideCovered = !S.hideCovered; render(); }
+  else if (a === 'invneeded'){ S.invNeeded = !S.invNeeded; render(); }
+  else if (a === 'goplans'){ location.hash = 'plans'; }
+  else if (a === 'focusplan'){ document.getElementById('np-target').focus(); }
+  else if (a === 'craft'){ GP.craft(id, +b.dataset.n); }
+  else if (a === 'gather'){ doGather(id); }
+  else if (a === 'delplan'){ GP.deletePlan(id); }
+  else if (a === 'addplan'){
+    const t = parseFloat(document.getElementById('np-target').value);
+    if (t > 0) GP.addPlan(document.getElementById('np-item').value, t, document.getElementById('np-note').value.trim());
+    else document.getElementById('np-target').focus();
+  }
+  else if (a === 'sel'){ S.sel = id; if (!GP.items().some(i => i.id===id)) return; render(); }
+  else if (a === 'setdef'){ GP.setDefault(id); }
+  else if (a === 'open'){ if (id === GP.currentGame.id) location.hash = 'requirements'; }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const t = e.target;
+  if (t.dataset && t.dataset.gather) doGather(t.dataset.gather);
+  else if (t.dataset && t.dataset.inv) t.blur();
+  else if (t.id === 'np-target' || t.id === 'np-note') document.querySelector('[data-act="addplan"]').click();
+});
+document.addEventListener('change', (e) => { const t = e.target; if (t.dataset && t.dataset.inv) GP.setInv(t.dataset.inv, t.value); });
+document.addEventListener('input', (e) => { if (e.target.id === 'q'){ S.q = e.target.value; document.getElementById('ilist').innerHTML = itemRows(); } });
+
+render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (route() === 'requirements') fitPills(); });
+})();
+</script>
+</body>
+</html>

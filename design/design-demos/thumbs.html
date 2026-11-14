@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Game Planner — six candidates</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Silkscreen:wght@400;700&family=DM+Sans:wght@400;600&family=Archivo:wght@400;600;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#2a2a2a;padding:24px;font-family:Geist,sans-serif;width:1560px}
+.grid{display:grid;grid-template-columns:repeat(3,480px);gap:28px 24px}
+figure{color:#ddd;font-size:14px}
+figcaption{margin-top:8px}
+.t{width:480px;height:300px;overflow:hidden;position:relative}
+
+/* 1 checklist */
+.c1{background:#fff;font-family:"Hanken Grotesk",sans-serif;display:flex;color:#25282d}
+.c1 .sb{width:112px;background:#f3f4f6;padding:14px 10px;font-size:9px;line-height:2}
+.c1 .sb b{display:block;background:#e3e6ea;border-radius:4px;padding:0 6px}
+.c1 .sb span{display:block;padding:0 6px;color:#555}
+.c1 .m{flex:1;padding:18px 34px}
+.c1 h1{font-size:17px;font-weight:800;display:flex;align-items:center;gap:7px}
+.c1 .ring{width:13px;height:13px;border-radius:50%;border:2px solid #2f6fde;background:conic-gradient(#2f6fde 30%,#fff 0)}
+.c1 h2{font-size:9px;font-weight:800;color:#2f6fde;border-bottom:1px solid #dfe3e8;padding-bottom:3px;margin:12px 0 4px}
+.c1 .r{display:flex;align-items:center;gap:7px;font-size:9.5px;padding:3.5px 0}
+.c1 .o{width:10px;height:10px;border-radius:50%;border:1.3px solid #9aa3ae;flex:none}
+.c1 .o.rd{border-color:#2f6fde;background:conic-gradient(#2f6fde 30%,#fff 0)}
+.c1 .r i{font-style:normal;color:#8a929c;margin-left:auto;font-size:8.5px}
+.c1 .r em{font-style:normal;font-size:7.5px;background:#eef3fd;color:#2f6fde;border-radius:3px;padding:1px 4px;font-weight:600}
+
+/* 2 ledger */
+.c2{background:#0c0d0f;font-family:Geist,sans-serif;display:flex;color:#e6e6e6}
+.c2 .sb{width:96px;border-right:1px solid #1e2024;padding:12px 8px;font-size:8.5px;line-height:2.1;color:#8b8d92}
+.c2 .sb b{color:#fff;font-weight:500;display:block;background:#17181b;border-radius:3px;padding:0 5px}
+.c2 .sb span{display:block;padding:0 5px}
+.c2 .m{flex:1}
+.c2 .g{font-size:8px;color:#8b8d92;background:#131417;padding:4px 10px;border-bottom:1px solid #1e2024;display:flex}
+.c2 .row{display:grid;grid-template-columns:10px 1fr 34px 34px 34px 40px;gap:6px;font-size:8.5px;padding:4.5px 10px;border-bottom:1px solid #17181b;align-items:center}
+.c2 .row span{font-family:"Geist Mono",monospace;text-align:right;color:#9a9ca1}
+.c2 .row span.w{color:#fff}
+.c2 .d{width:6px;height:6px;border-radius:50%;background:#3b3d42}
+.c2 .d.y{background:#e8b339}.c2 .d.gn{background:#4cc38a}.c2 .d.rd{background:#e5484d}
+.c2 .insp{width:108px;border-left:1px solid #1e2024;padding:12px 10px;font-size:8px;color:#8b8d92;line-height:1.8}
+.c2 .insp b{color:#fff;font-size:11px;font-weight:600;display:block}
+.c2 .btn{background:#e6e6e6;color:#000;border-radius:3px;padding:2px 6px;display:inline-block;margin-top:6px;font-weight:600}
+
+/* 3 hotbar */
+.c3{background:#1b1d2e;font-family:"DM Sans",sans-serif;color:#fff}
+.c3 .hud{height:30px;background:#0f1020;border-bottom:3px solid #fff;display:flex;align-items:center;padding:0 12px;gap:14px;font-family:Silkscreen,monospace;font-size:8.5px}
+.c3 .hud b{color:#ffd95a}.c3 .hud span{color:#8f93b8}
+.c3 .lab{font-family:Silkscreen,monospace;font-size:8px;color:#ffd95a;padding:10px 14px 5px}
+.c3 .slots{display:flex;gap:6px;padding:0 14px}
+.c3 .s{width:50px;height:50px;background:#2b2e4a;border:2px solid #474b73;position:relative;display:grid;place-items:center}
+.c3 .s.sel{border-color:#fff}.c3 .s.ok{border-color:#58c66a}
+.c3 .px{width:24px;height:24px}
+.c3 .s u{position:absolute;right:2px;bottom:0;font-family:Silkscreen,monospace;font-size:9px;text-decoration:none;text-shadow:1px 1px 0 #000}
+.c3 .dlg{position:absolute;left:12px;right:12px;bottom:10px;height:74px;border:2px solid #ffd95a;padding:3px;background:#0f1020}
+.c3 .dlg div{border:2px solid #fff;height:100%;padding:7px 10px;font-size:9px;line-height:1.5}
+.c3 .dlg b{font-size:11px;display:block}
+.c3 .go{position:absolute;right:16px;top:14px;background:#58c66a;color:#0f1020;border:2px solid #fff;font-family:Silkscreen,monospace;font-size:8px;padding:5px 8px}
+.c3 .go2{top:42px;background:#0f1020;color:#fff}
+
+/* 4 tiers */
+.c4{background:#f1ece0;font-family:Archivo,sans-serif;color:#111}
+.c4 .top{display:flex;align-items:baseline;gap:12px;padding:12px 16px 8px}
+.c4 .top b{font-weight:900;font-size:17px;letter-spacing:-.02em}
+.c4 .top span{font-size:8.5px;color:#555}
+.c4 .cols{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:0 16px}
+.c4 .col{border-top:2px solid #111;padding-top:3px}
+.c4 .col h3{display:flex;justify-content:space-between;font-size:8.5px;font-weight:900;margin-bottom:6px}
+.c4 .col h3 i{font-style:normal;color:#e4351e}
+.c4 .cd{background:#fff;border:1px solid #111;padding:5px 6px;margin-bottom:5px;font-size:8.5px;font-weight:600}
+.c4 .cd big{display:block;font-size:17px;font-weight:900;line-height:1;letter-spacing:-.03em}
+.c4 .cd small{font-weight:400;color:#555;font-size:7.5px;display:block}
+.c4 .cd.red{background:#e4351e;color:#fff;border-color:#e4351e}.c4 .cd.red small{color:#fff}
+.c4 .cd.dim{background:transparent;border-style:dashed;color:#777}
+
+/* 5 field unit */
+.c5{background:#dcdcd8;font-family:"IBM Plex Mono",monospace;color:#161616;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 48px}
+.c5 .p{padding:12px 14px;border-right:1px solid #161616}
+.c5 .p:nth-child(2){border-right:0}
+.c5 h3{font-size:8px;font-weight:500;letter-spacing:.06em;margin-bottom:8px;display:flex;justify-content:space-between}
+.c5 .r{display:flex;align-items:baseline;gap:8px;border-top:1px solid #a9a9a4;padding:3px 0}
+.c5 .r big{font-size:25px;font-weight:600;letter-spacing:-.04em;width:86px}
+.c5 .r span{font-size:8.5px}
+.c5 .r .k{margin-left:auto;width:9px;height:9px;border-radius:50%;border:1px solid #161616;align-self:center}
+.c5 .r .k.on{background:#ff5a1f;border-color:#ff5a1f}
+.c5 .strip{grid-column:1/3;border-top:1px solid #161616;display:flex;font-size:8px}
+.c5 .strip div{flex:1;border-right:1px solid #161616;padding:7px 10px}
+.c5 .strip b{display:block;font-size:11px}
+
+/* 6 plain */
+.c6{background:#fff;font-family:Inter,sans-serif;color:#18181b;display:flex}
+.c6 .sb{width:104px;border-right:1px solid #e4e4e7;background:#fafafa;padding:12px 8px;font-size:9px;line-height:2.1;color:#52525b}
+.c6 .sb b{display:block;background:#f0f0f1;border-radius:4px;padding:0 6px;color:#18181b;font-weight:500}
+.c6 .sb span{display:block;padding:0 6px}
+.c6 .m{flex:1;padding:14px 16px}
+.c6 h1{font-size:14px;font-weight:600}
+.c6 .tabs{display:inline-flex;background:#f4f4f5;border-radius:5px;padding:2px;font-size:8.5px;margin:8px 0}
+.c6 .tabs b{background:#fff;border-radius:4px;padding:2px 8px;font-weight:500;box-shadow:0 0 0 1px #e4e4e7}
+.c6 .tabs span{padding:2px 8px;color:#71717a}
+.c6 table{width:100%;border-collapse:collapse;font-size:8.5px;border:1px solid #e4e4e7}
+.c6 th{text-align:left;font-weight:500;color:#71717a;padding:4px 6px;border-bottom:1px solid #e4e4e7}
+.c6 td{padding:4.5px 6px;border-bottom:1px solid #f0f0f1}
+.c6 .bd{border:1px solid #e4e4e7;border-radius:8px;padding:0 5px;font-size:7.5px}
+.c6 .bt{background:#18181b;color:#fff;border-radius:4px;padding:2px 6px;font-size:7.5px}
+</style></head><body><div class="grid">
+
+<figure><div class="t c1"><div class="sb"><span>‹ Library</span><b>Requirements</b><span>Plans</span><span>Items</span><span>Inventory</span></div>
+<div class="m"><h1><span class="ring"></span>Hollowdeep</h1>
+<h2>Gather</h2>
+<div class="r"><span class="o"></span>5.625 Coal <em>4 plans</em><i>have 5</i></div>
+<div class="r"><span class="o"></span>1 Iron Ore <i>have 4</i></div>
+<div class="r"><span class="o"></span>10 Copper Ingot <em>recipe loop</em><i>have 6</i></div>
+<h2>Craft</h2>
+<div class="r"><span class="o rd"></span>Oak Plank × 1 craft <i>makes 4 · ready</i></div>
+<div class="r"><span class="o rd"></span>Stick × 3 crafts <i>makes 12 · ready</i></div>
+<div class="r"><span class="o rd"></span>Torch × 10 crafts <em>3 ready</em><i>makes 40, surplus 2</i></div>
+<div class="r"><span class="o rd"></span>Iron Ingot × 5 crafts <em>4 ready</em><i>makes 5</i></div>
+<div class="r"><span class="o"></span>Iron Pickaxe × 2 crafts <i>needs 6 Iron Ingot</i></div>
+</div></div><figcaption>1 · Checklist — after Things 3</figcaption></figure>
+
+<figure><div class="t c2"><div class="sb"><span>Hollowdeep</span><b>Requirements</b><span>Plans</span><span>Items</span><span>Inventory</span></div>
+<div class="m"><div class="g">Gather · 3 missing</div>
+<div class="row"><i class="d rd"></i>Coal<span>10.625</span><span>5</span><span class="w">5.625</span><span></span></div>
+<div class="row"><i class="d rd"></i>Iron Ore<span>5</span><span>4</span><span class="w">1</span><span></span></div>
+<div class="row"><i class="d y"></i>Copper Ingot ⟳<span>16</span><span>6</span><span class="w">10</span><span></span></div>
+<div class="row"><i class="d"></i>Oak Log<span>1</span><span>2</span><span>0</span><span></span></div>
+<div class="g">Craft · 6 items, 25 crafts</div>
+<div class="row"><i class="d gn"></i>Oak Plank<span>2</span><span>12</span><span class="w">1×</span><span>+2</span></div>
+<div class="row"><i class="d gn"></i>Stick<span>14</span><span>3</span><span class="w">3×</span><span>+1</span></div>
+<div class="row"><i class="d gn"></i>Torch<span>44</span><span>6</span><span class="w">10×</span><span>+2</span></div>
+<div class="row"><i class="d gn"></i>Iron Ingot<span>6</span><span>1</span><span class="w">5×</span><span></span></div>
+<div class="row"><i class="d"></i>Iron Pickaxe<span>2</span><span>0</span><span class="w">2×</span><span></span></div>
+<div class="row"><i class="d gn"></i>Lantern<span>4</span><span>0</span><span class="w">4×</span><span></span></div></div>
+<div class="insp"><b>Torch</b>10 crafts → 40<br>surplus 2<br><br>10 Stick · have 3<br>10 Coal · have 5<br><br>Light the east mine<br>Base perimeter<br>Dock<br><span class="btn">Craft 3</span></div></div>
+<figcaption>2 · Ledger — after Linear</figcaption></figure>
+
+<figure><div class="t c3"><div class="hud"><b>HOLLOWDEEP</b><span>REQUIREMENTS</span><span>PLANS</span><span>ITEMS</span><span>INVENTORY</span></div>
+<div class="lab">GATHER</div><div class="slots">
+<div class="s"><div class="px" style="background:#2c2c34;box-shadow:inset 4px 4px 0 #44444e"></div><u>5.6</u></div>
+<div class="s"><div class="px" style="background:#b98a6a;box-shadow:inset 6px 6px 0 #d8b9a0"></div><u>1</u></div>
+<div class="s"><div class="px" style="background:#d9763a;box-shadow:inset 4px 4px 0 #f0a56b"></div><u>10</u></div>
+<div class="s ok"><div class="px" style="background:#8a5a2b;box-shadow:inset 0 0 0 4px #6b431d"></div><u>✓</u></div></div>
+<div class="lab">CRAFT</div><div class="slots">
+<div class="s ok"><div class="px" style="background:#c79a55;box-shadow:inset 0 6px 0 #dab676"></div><u>×1</u></div>
+<div class="s ok"><div class="px" style="width:6px;background:#8a5a2b"></div><u>×3</u></div>
+<div class="s sel"><div class="px" style="width:6px;background:#8a5a2b;box-shadow:0 -9px 0 3px #ffd95a"></div><u>×10</u></div>
+<div class="s ok"><div class="px" style="height:12px;background:#cfd6e0;box-shadow:inset 0 4px 0 #fff"></div><u>×5</u></div>
+<div class="s"><div class="px" style="width:6px;background:#8a5a2b;box-shadow:0 -10px 0 4px #cfd6e0"></div><u>×2</u></div>
+<div class="s ok"><div class="px" style="background:#ffd95a;border:4px solid #d9763a"></div><u>×4</u></div></div>
+<div class="dlg"><div><b>Torch — 10 crafts make 40, surplus 2</b>Needs 10 Stick (have 3) and 10 Coal (have 5).<br>For: Light the east mine, Base perimeter, Dock.</div>
+<span class="go">CRAFT 1</span><span class="go go2">CRAFT ALL · 3</span></div></div>
+<figcaption>3 · Hotbar — roulette: pixel game</figcaption></figure>
+
+<figure><div class="t c4"><div class="top"><b>Hollowdeep</b><span>Requirements &nbsp; Plans &nbsp; Items &nbsp; Inventory</span></div>
+<div class="cols">
+<div class="col"><h3>Gather <i>0</i></h3><div class="cd"><big>5.625</big>Coal<small>have 5</small></div><div class="cd"><big>1</big>Iron Ore<small>have 4</small></div><div class="cd red"><big>10</big>Copper Ingot<small>recipe loop</small></div><div class="cd dim">Oak Log<small>covered</small></div></div>
+<div class="col"><h3>Craft <i>1</i></h3><div class="cd"><big>×1</big>Oak Plank<small>makes 4 · ready</small></div><div class="cd"><big>×5</big>Iron Ingot<small>4 ready</small></div></div>
+<div class="col"><h3>Craft <i>2</i></h3><div class="cd"><big>×3</big>Stick<small>makes 12 · ready</small></div></div>
+<div class="col"><h3>Craft <i>3</i></h3><div class="cd"><big>×10</big>Torch<small>makes 40 · surplus 2</small></div><div class="cd"><big>×2</big>Iron Pickaxe<small>waiting</small></div><div class="cd"><big>×4</big>Lantern<small>1 ready</small></div></div>
+<div class="col"><h3>Plans <i>5</i></h3><div class="cd">Torch 6 / 24<small>Light the east mine</small></div><div class="cd">Iron Pickaxe 0 / 2<small>One spare</small></div><div class="cd">Torch 0 / 16<small>Base perimeter</small></div><div class="cd">Lantern 0 / 4<small>Dock</small></div><div class="cd dim">Oak Plank 8 / 8<small>reached</small></div></div>
+</div></div><figcaption>4 · Tiers — roulette: character poster</figcaption></figure>
+
+<figure><div class="t c5">
+<div class="p"><h3><span>GATHER</span><span>MISSING / HAVE</span></h3>
+<div class="r"><big>5.625</big><span>COAL / 5</span><i class="k on"></i></div>
+<div class="r"><big>1</big><span>IRON ORE / 4</span><i class="k on"></i></div>
+<div class="r"><big>10</big><span>COPPER INGOT / 6 LOOP</span><i class="k on"></i></div>
+<div class="r"><big>0</big><span>OAK LOG / 2</span><i class="k"></i></div></div>
+<div class="p"><h3><span>CRAFT</span><span>CRAFTS / READY</span></h3>
+<div class="r"><big>×1</big><span>OAK PLANK / 1</span><i class="k on"></i></div>
+<div class="r"><big>×3</big><span>STICK / 3</span><i class="k on"></i></div>
+<div class="r"><big>×10</big><span>TORCH / 3 +2</span><i class="k on"></i></div>
+<div class="r"><big>×5</big><span>IRON INGOT / 4</span><i class="k on"></i></div>
+<div class="r"><big>×2</big><span>IRON PICKAXE / 0</span><i class="k"></i></div></div>
+<div class="strip"><div><b>6/24</b>TORCH</div><div><b>0/2</b>IRON PICKAXE</div><div><b>0/16</b>TORCH</div><div><b>0/4</b>LANTERN</div><div><b>8/8</b>OAK PLANK</div></div>
+</div><figcaption>5 · Field unit — Teenage Engineering thinking</figcaption></figure>
+
+<figure><div class="t c6"><div class="sb"><span>Hollowdeep ▾</span><b>Requirements</b><span>Plans</span><span>Items</span><span>Inventory</span></div>
+<div class="m"><h1>Requirements</h1><div class="tabs"><b>Craft</b><span>Gather</span></div>
+<table><tr><th>Item</th><th>Crafts</th><th>Makes</th><th>Surplus</th><th>State</th><th></th></tr>
+<tr><td>Oak Plank</td><td>1</td><td>4</td><td>2</td><td><span class="bd">Ready</span></td><td><span class="bt">Craft all</span></td></tr>
+<tr><td>Stick</td><td>3</td><td>12</td><td>1</td><td><span class="bd">Ready</span></td><td><span class="bt">Craft all</span></td></tr>
+<tr><td>Torch</td><td>10</td><td>40</td><td>2</td><td><span class="bd">3 ready</span></td><td><span class="bt">Craft 3</span></td></tr>
+<tr><td>Iron Ingot</td><td>5</td><td>5</td><td>0</td><td><span class="bd">4 ready</span></td><td><span class="bt">Craft 4</span></td></tr>
+<tr><td>Iron Pickaxe</td><td>2</td><td>2</td><td>0</td><td><span class="bd">Waiting</span></td><td></td></tr>
+<tr><td>Lantern</td><td>4</td><td>4</td><td>0</td><td><span class="bd">1 ready</span></td><td><span class="bt">Craft 1</span></td></tr></table></div></div>
+<figcaption>6 · Plain — "super normal", stock component theme</figcaption></figure>
+
+</div></body></html>

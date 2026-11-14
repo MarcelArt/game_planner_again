@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Game Planner — Ledger</title>
+<meta name="viewport" content="width=1440, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #08090a;
+    --band: #0e0f11;
+    --hover: #101113;
+    --sel: #17181b;
+    --raise: #141518;
+    --line: #1b1c1f;
+    --line2: #26282c;
+    --line3: #34373c;
+    --t1: #f7f8f8;
+    --t2: #c6c9ce;
+    --t3: #8f949c;
+    --red: #e5604d;
+    --amber: #e2b341;
+    --green: #4cb782;
+    --grey: #6b6f76;
+    --ui: "Inter", "Inter Variable", system-ui, sans-serif;
+    --mono: "Geist Mono", "JetBrains Mono", ui-monospace, "DejaVu Sans Mono", monospace;
+    --cols: minmax(0, 1fr) 56px 56px 68px 56px 56px 64px 108px 60px 172px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); }
+  body { font: 400 14px/1.4 var(--ui); color: var(--t2); font-feature-settings: "cv01", "ss03", "calt"; -webkit-font-smoothing: antialiased; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  #app { width: 100vw; height: 100vh; min-width: 1440px; display: flex; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  .scroll { overflow-y: auto; min-height: 0; }
+  .scroll::-webkit-scrollbar { width: 10px; }
+  .scroll::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 5px; border: 3px solid var(--bg); }
+
+  /* Fallback icon: tinted tile with initials */
+  .tile { --h: 30; flex: none; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px;
+    background: hsl(var(--h) 32% 17%); border: 1px solid hsl(var(--h) 30% 29%); color: hsl(var(--h) 72% 82%);
+    font: 600 12px/1 var(--mono); letter-spacing: -0.04em; }
+  .tile.lg { width: 40px; height: 40px; border-radius: 9px; font-size: 16px; }
+  .tile.md { width: 32px; height: 32px; border-radius: 8px; font-size: 14px; }
+
+  .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--grey); }
+  .dot.red { background: var(--red); } .dot.amber { background: var(--amber); } .dot.green { background: var(--green); }
+  .dot.ring { background: transparent; border: 1.5px solid var(--grey); }
+
+  /* Buttons and fields */
+  .btn { height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--line2); background: var(--raise); color: var(--t1);
+    font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .btn:hover { background: #1c1d21; border-color: var(--line3); }
+  .btn.primary { background: #e8e9ea; border-color: #e8e9ea; color: #08090a; }
+  .btn.primary:hover { background: #fff; }
+  .btn.lg { height: 34px; padding: 0 14px; }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--t3); }
+  .btn.ghost:hover { background: var(--raise); color: var(--t1); }
+  .btn:disabled { background: transparent; border-color: var(--line); color: #6f737a; cursor: default; }
+  .btn .n { font: 500 13px/1 var(--mono); padding: 3px 5px; border-radius: 4px; background: #26282c; color: var(--t1); }
+  .btn.primary .n { background: #c9cbce; color: #08090a; }
+  .btn:disabled .n { background: transparent; color: inherit; padding: 0; }
+  .field { height: 28px; border-radius: 6px; border: 1px solid var(--line2); background: #0c0d0f; padding: 0 8px; color: var(--t1); outline: none; min-width: 0; }
+  .field::placeholder { color: var(--t3); }
+  .field:focus { border-color: #6b6f76; }
+  .field.num { font-family: var(--mono); text-align: right; }
+  select.field { padding-right: 4px; }
+
+  /* Sidebar */
+  .side { width: 216px; flex: none; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  .side-top { padding: 10px 8px 6px; }
+  .back { width: 100%; height: 30px; padding: 0 8px; border: 0; background: none; border-radius: 6px; color: var(--t3); text-align: left; }
+  .back:hover { background: var(--hover); color: var(--t1); }
+  .game { display: flex; align-items: center; gap: 10px; padding: 8px 8px 12px; }
+  .game b { display: block; color: var(--t1); font-weight: 600; font-size: 15px; }
+  .game span.bl { display: block; color: var(--t3); font-size: 12px; }
+  .nav { padding: 0 8px; display: flex; flex-direction: column; gap: 1px; }
+  .nav button { height: 32px; padding: 0 10px; border: 0; background: none; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; color: var(--t2); font-weight: 500; }
+  .nav button:hover { background: var(--hover); }
+  .nav button.on { background: var(--sel); color: var(--t1); }
+  .nav .c { font: 400 13px var(--mono); color: var(--t3); }
+  .side h3 { font-size: 12px; font-weight: 500; color: var(--t3); padding: 0 18px; margin: 22px 0 6px; display: flex; justify-content: space-between; }
+  .splans { padding: 0 8px; }
+  .splan { width: 100%; border: 0; background: none; text-align: left; border-radius: 6px; padding: 6px 10px; display: grid; grid-template-columns: 8px 1fr auto; column-gap: 9px; align-items: center; }
+  .splan:hover { background: var(--hover); }
+  .splan .nm { color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .splan .q { font: 400 13px var(--mono); color: var(--t3); }
+  .splan .note { grid-column: 2 / 4; font-size: 12px; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .splan.reached .q { color: var(--green); }
+
+  /* Main */
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .head { height: 52px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+  .head h1 { font-size: 15px; font-weight: 600; color: var(--t1); }
+  .head .meta { color: var(--t3); }
+  .head .sp { flex: 1; }
+
+  /* Ledger table */
+  .row { display: grid; grid-template-columns: var(--cols); align-items: center; padding: 0 12px 0 14px; }
+  .row > div { min-width: 0; }
+  .colhead { height: 32px; flex: none; font-size: 12px; font-weight: 500; color: var(--t3); border-bottom: 1px solid var(--line); }
+  .colhead .r, .row .r { text-align: right; }
+  .row .gap { padding-left: 18px; }
+  .group { height: 32px; background: var(--band); border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); margin-top: -1px;
+    display: flex; align-items: center; gap: 10px; padding: 0 14px; position: sticky; top: 0; z-index: 2; }
+  .group b { color: var(--t1); font-weight: 600; font-size: 14px; }
+  .group span { color: var(--t3); font-size: 14px; }
+  .entry { border-bottom: 1px solid var(--line); cursor: default; }
+  .entry:hover { background: var(--hover); }
+  .entry.on { background: var(--sel); }
+  .entry .row.m { height: 36px; }
+  .entry .row.s { height: 27px; color: var(--t3); }
+  .entry .row.s:last-child { height: 31px; padding-bottom: 6px; }
+  .ci { display: flex; align-items: center; gap: 9px; }
+  .ci .nm { color: var(--t1); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row.s .ci { padding-left: 17px; gap: 7px; }
+  .row.s .ci .nm { color: var(--t2); font-weight: 400; flex: none; }
+  .row.s .per { font-size: 12px; color: var(--t3); white-space: nowrap; }
+  .row.s .loopline { grid-column: 1 / -1; padding-left: 17px; color: var(--t2); }
+  .row.s .loopline em { font-style: normal; color: var(--amber); margin-right: 8px; }
+  .num { font: 400 14px var(--mono); font-variant-numeric: tabular-nums; text-align: right; color: var(--t2); }
+  .num.dim { color: var(--t3); }
+  .num.key { color: var(--t1); font-weight: 600; }
+  .row.s .num { color: var(--t3); }
+  .row.s .num.short { color: var(--t2); }
+  .st { white-space: nowrap; }
+  .st.ready { color: var(--t1); }
+  .st.dim, .pl { color: var(--t3); }
+  .act { display: flex; justify-content: flex-end; gap: 6px; }
+  .act .field { width: 76px; }
+  .entry.covered .ci .nm { color: var(--t2); font-weight: 400; }
+  .foot { padding: 12px 14px; color: var(--t3); }
+
+  /* Inspector */
+  .insp { width: 312px; flex: none; border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  .insp-h { padding: 14px 16px 12px; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid var(--line); height: 68px; flex: none; }
+  .insp-h b { display: block; color: var(--t1); font-size: 16px; font-weight: 600; }
+  .insp-h span.k { color: var(--t3); }
+  .insp-b { flex: 1; padding: 4px 16px 16px; }
+  .verdict { display: flex; align-items: center; gap: 9px; color: var(--t1); padding: 12px 0 2px; }
+  .sec { font-size: 12px; font-weight: 500; color: var(--t3); margin: 16px 0 4px; }
+  .led > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; height: 26px; }
+  .led .l { color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .led .l small { font-size: 12px; color: var(--t3); margin-left: 6px; }
+  .led .sum { border-top: 1px solid var(--line2); margin-top: 3px; padding-top: 3px; height: 30px; }
+  .led .big { height: 34px; }
+  .led .big .l { color: var(--t1); font-weight: 600; }
+  .led .big .num { font-size: 20px; color: var(--t1); font-weight: 600; }
+  .led .num.pos { color: var(--amber); }
+  .looptext { color: var(--t2); margin-top: 10px; padding: 10px 12px; border: 1px solid var(--line2); border-radius: 8px; }
+  .looptext b { color: var(--amber); font-weight: 500; }
+  .iplan { display: grid; grid-template-columns: 8px 1fr auto; column-gap: 9px; align-items: center; padding: 5px 0; }
+  .iplan .note { color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .iplan .sub { grid-column: 2 / 4; font-size: 12px; color: var(--t3); }
+  .insp-f { flex: none; padding: 12px 16px 16px; border-top: 1px solid var(--line); }
+  .insp-f .cap { color: var(--t3); margin-bottom: 10px; }
+  .insp-f .cap b { color: var(--t1); font-weight: 500; }
+  .insp-f .bt { display: flex; gap: 8px; }
+  .insp-f .bt .btn { flex: 1; justify-content: center; }
+  .insp-f .bt .field { flex: 1; height: 34px; }
+
+  /* Simple tables (Plans, Inventory) */
+  .trow { display: grid; align-items: center; padding: 0 16px; height: 44px; border-bottom: 1px solid var(--line); column-gap: 16px; }
+  .trow:hover { background: var(--hover); }
+  .trow.th { height: 32px; font-size: 12px; font-weight: 500; color: var(--t3); }
+  .trow.th:hover { background: none; }
+  .plans-cols { grid-template-columns: 8px 200px minmax(0, 1fr) 72px 72px 260px 120px 84px; }
+  .inv-cols { grid-template-columns: 220px 140px 152px 90px 90px minmax(0, 1fr); }
+  .bar { height: 6px; border-radius: 3px; background: #202226; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--t2); border-radius: 3px; }
+  .bar.full i { background: var(--green); }
+  .addrow { display: grid; grid-template-columns: 8px 200px minmax(0, 1fr) 72px 72px 260px 120px 84px; column-gap: 16px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--band); }
+  .addrow .field { width: 100%; }
+  .caption { padding: 14px 16px; color: var(--t3); max-width: 760px; }
+  .step { display: flex; gap: 4px; justify-content: flex-end; }
+  .step .btn { width: 28px; padding: 0; justify-content: center; font-family: var(--mono); }
+  .step .field { width: 84px; }
+
+  /* Items */
+  .split { flex: 1; min-height: 0; display: flex; }
+  .ilist { width: 340px; flex: none; border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+  .search { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .search .field { width: 100%; height: 32px; }
+  .irow { display: grid; grid-template-columns: 24px 1fr auto; column-gap: 10px; align-items: center; height: 40px; padding: 0 14px; border-bottom: 1px solid var(--line); cursor: default; }
+  .irow:hover { background: var(--hover); }
+  .irow.on { background: var(--sel); }
+  .irow .nm { color: var(--t1); font-weight: 500; }
+  .irow .kd { color: var(--t3); }
+  .detail { flex: 1; min-width: 0; padding: 22px 28px; }
+  .d-h { display: flex; align-items: center; gap: 14px; }
+  .d-h h2 { font-size: 20px; font-weight: 600; color: var(--t1); letter-spacing: -0.01em; }
+  .d-h .k { color: var(--t3); }
+  .facts { display: flex; gap: 0; margin: 20px 0 6px; border: 1px solid var(--line2); border-radius: 8px; width: fit-content; }
+  .facts div { padding: 10px 18px; border-right: 1px solid var(--line2); min-width: 130px; }
+  .facts div:last-child { border-right: 0; }
+  .facts span { display: block; font-size: 12px; color: var(--t3); }
+  .facts b { font: 500 16px var(--mono); color: var(--t1); }
+  .h3 { font-size: 14px; font-weight: 600; color: var(--t1); margin: 26px 0 10px; display: flex; align-items: center; gap: 10px; }
+  .h3 span { font-weight: 400; color: var(--t3); }
+  .recipes { display: grid; grid-template-columns: repeat(2, 380px); gap: 14px; }
+  .recipe { border: 1px solid var(--line2); border-radius: 8px; background: var(--band); }
+  .recipe.def { border-color: #4a4d53; }
+  .r-h { display: flex; align-items: center; justify-content: space-between; height: 46px; padding: 0 10px 0 14px; border-bottom: 1px solid var(--line2); }
+  .radio { display: flex; align-items: center; gap: 10px; background: none; border: 0; color: var(--t2); height: 30px; padding: 0 8px 0 0; border-radius: 6px; }
+  .radio i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--grey); display: grid; place-items: center; }
+  .radio.on { color: var(--t1); font-weight: 500; cursor: default; }
+  .radio.on i { border-color: var(--t1); }
+  .radio.on i::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--t1); }
+  .radio:not(.on):hover { color: var(--t1); }
+  .r-h .hint { color: var(--t3); font-size: 12px; }
+  .r-l { display: grid; grid-template-columns: 64px 24px 1fr auto; column-gap: 10px; align-items: center; height: 36px; padding: 0 14px; }
+  .r-l .w { color: var(--t3); font-size: 12px; }
+  .r-l .nm { color: var(--t2); }
+  .r-l.out { border-top: 1px solid var(--line2); height: 42px; }
+  .r-l.out .nm, .r-l.out .num { color: var(--t1); font-weight: 600; }
+  .r-l .num small { font: 400 12px var(--ui); color: var(--t3); margin-left: 6px; }
+  .used { border: 1px solid var(--line2); border-radius: 8px; width: 774px; }
+  .used .u { display: grid; grid-template-columns: 24px 200px 1fr auto; column-gap: 10px; align-items: center; height: 40px; padding: 0 14px; border-bottom: 1px solid var(--line); cursor: default; }
+  .used .u:last-child { border-bottom: 0; }
+  .used .u:hover { background: var(--hover); }
+  .used .nm { color: var(--t1); }
+  .used .w { color: var(--t3); }
+  .empty { color: var(--t3); }
+
+  /* Library */
+  .lib { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .lib-b { flex: 1; padding: 28px 40px; }
+  .lib-b h2 { font-size: 20px; font-weight: 600; color: var(--t1); letter-spacing: -0.01em; }
+  .lib-b p { color: var(--t3); margin: 4px 0 22px; }
+  .games { display: grid; grid-template-columns: repeat(4, 322px); gap: 16px; }
+  .gcard { border: 1px solid var(--line2); border-radius: 10px; background: var(--band); overflow: hidden; text-align: left; padding: 0; color: inherit; display: flex; flex-direction: column; }
+  .gcard:hover { border-color: var(--line3); }
+  .thumb { --h: 30; height: 150px; background: hsl(var(--h) 30% 13%); border-bottom: 1px solid hsl(var(--h) 26% 22%); position: relative; }
+  .thumb b { position: absolute; left: 16px; bottom: 10px; font: 600 52px/1 var(--mono); letter-spacing: -0.06em; color: hsl(var(--h) 55% 72%); }
+  .thumb span { position: absolute; right: 12px; top: 12px; font-size: 12px; color: hsl(var(--h) 40% 76%); }
+  .g-b { padding: 14px 16px 6px; }
+  .g-b b { display: block; font-size: 16px; font-weight: 600; color: var(--t1); }
+  .g-b span { color: var(--t3); }
+  .g-s { padding: 4px 16px 10px; }
+  .g-s div { display: flex; justify-content: space-between; height: 28px; align-items: center; border-top: 1px solid var(--line); }
+  .g-s div:first-child { border-top: 0; }
+  .g-s .num { color: var(--t1); }
+  .g-f { margin-top: auto; padding: 12px 16px; border-top: 1px solid var(--line2); display: flex; justify-content: space-between; align-items: center; color: var(--t3); height: 54px; }
+  .g-f .now { color: var(--t2); }
+  .gadd { border: 1px dashed var(--line3); border-radius: 10px; background: none; color: var(--t3); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 300px; }
+  .gadd:hover { color: var(--t1); border-color: var(--grey); }
+  .gadd b { font-weight: 500; color: var(--t1); }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="../shared.js"></script>
+<script>
+(function () {
+  const f = GP.fmt;
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const tile = (it, size) => `<span class="tile ${size || ''}" style="--h:${it.hue}">${GP.initials(it.name)}</span>`;
+  const plural = (n, one, many) => `${f(n)} ${n === 1 ? one : many}`;
+  const SCREENS = ['library', 'requirements', 'plans', 'items', 'inventory'];
+  const TITLES = { requirements: 'Requirements', plans: 'Plans', items: 'Items', inventory: 'Inventory' };
+
+  const state = { screen: 'requirements', sel: 'torch', itemSel: 'torch', q: '' };
+
+  function route() {
+    const h = location.hash.replace('#', '');
+    state.screen = SCREENS.includes(h) ? h : 'requirements';
+    render();
+  }
+
+  /* ---------- Shell ---------- */
+  function sidebar() {
+    const plans = GP.plans();
+    const nav = [['requirements', ''], ['plans', plans.length], ['items', GP.items().length], ['inventory', '']];
+    const g = GP.currentGame;
+    return `<aside class="side">
+      <div class="side-top">
+        <button class="back" data-act="nav" data-to="library">All games</button>
+        <div class="game">
+          <span class="tile md" style="--h:${g.hue}">${GP.initials(g.title)}</span>
+          <div><b>${esc(g.title)}</b><span class="bl">${esc(g.blurb)}</span></div>
+        </div>
+      </div>
+      <nav class="nav">
+        ${nav.map(([s, c]) => `<button class="${state.screen === s ? 'on' : ''}" data-act="nav" data-to="${s}"><span>${TITLES[s]}</span><span class="c">${c}</span></button>`).join('')}
+      </nav>
+      <h3><span>Plans, oldest first</span></h3>
+      <div class="splans scroll">
+        ${plans.map((p) => `<button class="splan ${p.reached ? 'reached' : ''}" data-act="nav" data-to="plans" title="${p.reached ? 'Reached' : 'Not reached'}">
+          <span class="dot ${p.reached ? 'green' : 'ring'}"></span>
+          <span class="nm">${esc(p.itemName)}</span>
+          <span class="q">${f(p.assigned)}/${f(p.target)}</span>
+          <span class="note">${p.reached ? 'Reached' : esc(p.note || 'No note')}${p.reached && p.note ? ', ' + esc(p.note) : ''}</span>
+        </button>`).join('')}
+      </div>
+    </aside>`;
+  }
+
+  /* ---------- Requirements ---------- */
+  function sources(id, req) {
+    const out = [];
+    GP.plans().filter((p) => p.item === id).forEach((p) => out.push({ label: p.note || 'Plan', small: 'plan', amount: p.target }));
+    req.craft.forEach((c) => c.inputs.forEach((i) => {
+      if (i.item.id === id && i.total > 0) out.push({ label: c.item.name, small: `${plural(c.crafts, 'craft', 'crafts')} × ${f(i.perCraft)}`, amount: i.total });
+    }));
+    return out;
+  }
+
+  function gatherEntry(g) {
+    const covered = g.missing <= 0;
+    const dot = g.loop ? 'amber' : covered ? '' : 'red';
+    const st = covered ? 'Covered' : g.loop ? 'Recipe loop' : 'To gather';
+    return `<div class="entry ${state.sel === g.item.id ? 'on' : ''} ${covered ? 'covered' : ''}" data-act="sel" data-id="${g.item.id}">
+      <div class="row m">
+        <div class="ci"><span class="dot ${dot}"></span>${tile(g.item)}<span class="nm">${esc(g.item.name)}</span></div>
+        <div class="num">${f(g.need)}</div>
+        <div class="num">${f(g.have)}</div>
+        <div class="num ${covered ? 'dim' : 'key'}">${f(g.missing)}</div>
+        <div></div><div></div><div></div>
+        <div class="st gap ${covered ? 'dim' : ''}">${st}</div>
+        <div class="pl">${plural(g.plans.length, 'plan', 'plans')}</div>
+        <div class="act" data-gbox>
+          <input class="field num" data-gather="${g.item.id}" inputmode="decimal" placeholder="0" aria-label="Amount of ${esc(g.item.name)} gathered">
+          <button class="btn" data-act="gather" data-id="${g.item.id}">Add</button>
+        </div>
+      </div>
+      ${g.loop ? `<div class="row s"><div class="loopline"><em>Recipe loop</em>${g.loop.map(esc).join(' → ')}</div></div>` : ''}
+    </div>`;
+  }
+
+  function craftEntry(c) {
+    const none = c.crafts <= 0;
+    const dot = none ? '' : c.ready ? 'green' : 'ring';
+    const st = none ? 'Covered' : c.ready ? `${f(c.canCraft)} ready` : 'Not ready';
+    return `<div class="entry ${state.sel === c.item.id ? 'on' : ''} ${none ? 'covered' : ''}" data-act="sel" data-id="${c.item.id}">
+      <div class="row m">
+        <div class="ci"><span class="dot ${dot}"></span>${tile(c.item)}<span class="nm">${esc(c.item.name)}</span></div>
+        <div class="num">${f(c.need)}</div>
+        <div class="num">${f(c.have)}</div>
+        <div class="num">${f(c.missing)}</div>
+        <div class="num ${none ? 'dim' : 'key'}">${f(c.crafts)}</div>
+        <div class="num">${f(c.makes)}</div>
+        <div class="num ${c.surplus > 0 ? '' : 'dim'}">${c.surplus > 0 ? '+' + f(c.surplus) : '0'}</div>
+        <div class="st gap ${c.ready ? 'ready' : 'dim'}">${st}</div>
+        <div class="pl">${plural(c.plans.length, 'plan', 'plans')}</div>
+        <div class="act">
+          <button class="btn" data-act="craft" data-id="${c.item.id}" data-n="1" ${c.canCraft > 0 ? '' : 'disabled'}>Craft 1</button>
+          <button class="btn" data-act="craft" data-id="${c.item.id}" data-n="${c.canCraft}" ${c.canCraft > 0 ? '' : 'disabled'}>Craft all <span class="n">${f(c.canCraft)}</span></button>
+        </div>
+      </div>
+      ${none ? '' : c.inputs.map((i) => {
+        const short = Math.max(0, i.total - i.have);
+        return `<div class="row s">
+          <div class="ci"><span class="nm">${esc(i.item.name)}</span><span class="per"><span class="mono">${f(i.perCraft)}</span> per craft</span></div>
+          <div class="num">${f(i.total)}</div>
+          <div class="num">${f(i.have)}</div>
+          <div class="num ${short > 0 ? 'short' : ''}">${f(short)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  function planLines(list) {
+    const view = GP.plans();
+    return list.map((p) => {
+      const v = view.find((x) => x.id === p.id) || p;
+      return `<div class="iplan">
+        <span class="dot ${v.reached ? 'green' : 'ring'}"></span>
+        <span class="note">${esc(p.note || 'No note')}</span>
+        <span class="num">${f(v.assigned || 0)}/${f(p.target)}</span>
+        <span class="sub">${esc(GP.item(p.item).name)}, target ${f(p.target)}${v.reached ? ', reached' : ''}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function inspector(req) {
+    const c = req.craft.find((x) => x.item.id === state.sel);
+    const g = req.gather.find((x) => x.item.id === state.sel);
+    if (!c && !g) {
+      const it = GP.item(state.sel);
+      return `<aside class="insp"><div class="insp-h">${it ? tile(it, 'lg') : ''}<div><b>${it ? esc(it.name) : 'Nothing selected'}</b><span class="k">Not in Requirements</span></div></div>
+        <div class="insp-b"><p class="verdict">No plan needs this item right now.</p></div></aside>`;
+    }
+    const row = c || g;
+    const src = sources(row.item.id, req);
+    const srcHtml = src.map((s) => `<div><span class="l">${esc(s.label)}<small>${esc(s.small)}</small></span><span class="num">${f(s.amount)}</span></div>`).join('');
+    if (c) {
+      const none = c.crafts <= 0;
+      const verdict = none ? `<span class="dot"></span>Covered by inventory`
+        : c.ready ? `<span class="dot green"></span>Ready, inventory covers ${f(c.canCraft)} of ${plural(c.crafts, 'craft', 'crafts')}`
+        : `<span class="dot ring"></span>Not ready, inputs are missing`;
+      return `<aside class="insp">
+        <div class="insp-h">${tile(c.item, 'lg')}<div><b>${esc(c.item.name)}</b><span class="k">Craft, output ${f(c.recipe.output)} per craft</span></div></div>
+        <div class="insp-b scroll" data-scroll="insp">
+          <div class="verdict">${verdict}</div>
+          <div class="sec">Needed by</div>
+          <div class="led">
+            ${srcHtml}
+            <div class="sum"><span class="l">Need</span><span class="num">${f(c.need)}</span></div>
+            <div><span class="l">Have</span><span class="num">−${f(c.have)}</span></div>
+            <div><span class="l">Missing</span><span class="num">${f(c.missing)}</span></div>
+            <div><span class="l">Output per craft</span><span class="num">÷${f(c.recipe.output)}</span></div>
+            <div class="sum big"><span class="l">Crafts</span><span class="num">${f(c.crafts)}</span></div>
+            <div><span class="l">Makes</span><span class="num">${f(c.makes)}</span></div>
+            <div><span class="l">Surplus</span><span class="num ${c.surplus > 0 ? 'pos' : 'dim'}">${c.surplus > 0 ? '+' : ''}${f(c.surplus)}</span></div>
+          </div>
+          <div class="sec">Inputs, needed and in inventory</div>
+          <div class="led">
+            ${c.inputs.map((i) => `<div><span class="l">${esc(i.item.name)}<small>${f(i.perCraft)} per craft</small></span><span class="num">${f(i.total)} <span style="color:var(--t3)">/ ${f(i.have)}</span></span></div>`).join('')}
+          </div>
+          <div class="sec">Serves ${plural(c.plans.length, 'plan', 'plans')}</div>
+          ${planLines(c.plans)}
+        </div>
+        <div class="insp-f">
+          <div class="bt">
+            <button class="btn lg" data-act="craft" data-id="${c.item.id}" data-n="1" ${c.canCraft > 0 ? '' : 'disabled'}>Craft 1</button>
+            <button class="btn lg primary" data-act="craft" data-id="${c.item.id}" data-n="${c.canCraft}" ${c.canCraft > 0 ? '' : 'disabled'}>Craft all <span class="n">${f(c.canCraft)}</span></button>
+          </div>
+        </div>
+      </aside>`;
+    }
+    const covered = g.missing <= 0;
+    const verdict = covered ? `<span class="dot"></span>Covered by inventory`
+      : g.loop ? `<span class="dot amber"></span>Gather ${f(g.missing)}, cut from a recipe loop`
+      : `<span class="dot red"></span>Gather ${f(g.missing)} more`;
+    return `<aside class="insp">
+      <div class="insp-h">${tile(g.item, 'lg')}<div><b>${esc(g.item.name)}</b><span class="k">${g.loop ? 'Gather, recipe loop' : 'Gather, raw material'}</span></div></div>
+      <div class="insp-b scroll" data-scroll="insp">
+        <div class="verdict">${verdict}</div>
+        ${g.loop ? `<div class="looptext"><b>Recipe loop.</b> ${g.loop.map(esc).join(' → ')}. The calculation stops at the repeated item and treats it as something to gather.</div>` : ''}
+        <div class="sec">Needed by</div>
+        <div class="led">
+          ${srcHtml}
+          <div class="sum"><span class="l">Need</span><span class="num">${f(g.need)}</span></div>
+          <div><span class="l">Have</span><span class="num">−${f(g.have)}</span></div>
+          <div class="sum big"><span class="l">Missing</span><span class="num">${f(g.missing)}</span></div>
+        </div>
+        <div class="sec">Serves ${plural(g.plans.length, 'plan', 'plans')}</div>
+        ${planLines(g.plans)}
+      </div>
+      <div class="insp-f" data-gbox>
+        <div class="cap">Record what you gathered. It is added to inventory.</div>
+        <div class="bt">
+          <input class="field num" data-gather="${g.item.id}" inputmode="decimal" placeholder="${f(g.missing)}" aria-label="Amount gathered">
+          <button class="btn lg primary" data-act="gather" data-id="${g.item.id}">Add to inventory</button>
+        </div>
+      </div>
+    </aside>`;
+  }
+
+  function requirements() {
+    const req = GP.requirements();
+    const toGather = req.gather.filter((g) => g.missing > 0).length;
+    const covered = req.gather.length - toGather;
+    const crafts = req.craft.reduce((a, c) => a + c.crafts, 0);
+    const readyNow = req.craft.filter((c) => c.ready).length;
+    const empty = !req.gather.length && !req.craft.length;
+    return `<section class="main">
+      <header class="head"><h1>Requirements</h1><span class="meta">Combined across ${plural(GP.plans().length, 'plan', 'plans')}</span><span class="sp"></span>
+        <span class="meta"><span class="mono" style="color:var(--t1)">${f(readyNow)}</span> of <span class="mono">${f(req.craft.filter((c) => c.crafts > 0).length)}</span> items ready to craft</span></header>
+      <div class="row colhead">
+        <div>Item</div><div class="r">Need</div><div class="r">Have</div><div class="r">Missing</div><div class="r">Crafts</div><div class="r">Makes</div><div class="r">Surplus</div><div class="gap">State</div><div>Serves</div><div></div>
+      </div>
+      <div class="scroll" data-scroll="req" style="flex:1">
+        ${empty ? `<div class="foot">Nothing to gather or craft. Add a plan to see its Requirements.</div>` : `
+        <div class="group"><b>Gather</b><span>${plural(toGather, 'raw material', 'raw materials')} missing${covered ? `, ${f(covered)} covered` : ''}</span></div>
+        ${req.gather.map(gatherEntry).join('')}
+        <div class="group"><b>Craft</b><span>${plural(req.craft.length, 'item', 'items')}, ${plural(crafts, 'craft', 'crafts')}, inputs first</span></div>
+        ${req.craft.map(craftEntry).join('')}`}
+      </div>
+    </section>${inspector(req)}`;
+  }
+
+  /* ---------- Plans ---------- */
+  function plansScreen() {
+    const plans = GP.plans();
+    const reached = plans.filter((p) => p.reached).length;
+    return `<section class="main">
+      <header class="head"><h1>Plans</h1><span class="meta">${plural(plans.length, 'plan', 'plans')}, ${f(reached)} reached</span></header>
+      <div class="trow th plans-cols"><div></div><div>Item</div><div>Note</div><div style="text-align:right">Target</div><div style="text-align:right">Assigned</div><div>Progress</div><div>State</div><div></div></div>
+      <div class="scroll" data-scroll="plans" style="flex:1">
+        ${plans.map((p) => {
+          const pct = Math.min(100, (p.assigned / p.target) * 100);
+          return `<div class="trow plans-cols">
+            <span class="dot ${p.reached ? 'green' : 'ring'}"></span>
+            <div class="ci">${tile(GP.item(p.item))}<span class="nm">${esc(p.itemName)}</span></div>
+            <div style="color:${p.note ? 'var(--t2)' : 'var(--t3)'}">${esc(p.note || 'No note')}</div>
+            <div class="num key">${f(p.target)}</div>
+            <div class="num">${f(p.assigned)}</div>
+            <div style="display:flex;align-items:center;gap:12px"><div class="bar ${p.reached ? 'full' : ''}" style="flex:1"><i style="width:${pct}%"></i></div><span class="num dim" style="width:44px">${Math.round(pct)}%</span></div>
+            <div style="color:${p.reached ? 'var(--t1)' : 'var(--t3)'}">${p.reached ? 'Reached' : 'Not reached'}</div>
+            <div style="text-align:right"><button class="btn ghost" data-act="delplan" data-id="${p.id}">Delete</button></div>
+          </div>`;
+        }).join('')}
+        <div class="addrow">
+          <span></span>
+          <select class="field" id="np-item" aria-label="Item">${GP.items().map((i) => `<option value="${i.id}">${esc(i.name)}</option>`).join('')}</select>
+          <input class="field" id="np-note" placeholder="Note, optional" aria-label="Note">
+          <input class="field num" id="np-target" inputmode="numeric" placeholder="Target" aria-label="Target">
+          <span></span>
+          <div><button class="btn primary" data-act="addplan">Add plan</button></div>
+          <span></span><span></span>
+        </div>
+        <p class="caption">Plans are listed oldest first. Inventory of an item is assigned to that item's plans in this order, and targets for the same item add up. A reached plan stays here until you delete it.</p>
+      </div>
+    </section>`;
+  }
+
+  /* ---------- Items ---------- */
+  function itemRows() {
+    const q = state.q.trim().toLowerCase();
+    const list = GP.items().filter((i) => i.name.toLowerCase().includes(q));
+    if (!list.length) return `<div class="foot">No item matches "${esc(state.q)}".</div>`;
+    return list.map((i) => {
+      const n = GP.recipesOf(i.id).length;
+      return `<div class="irow ${state.itemSel === i.id ? 'on' : ''}" data-act="itemsel" data-id="${i.id}">
+        ${tile(i)}<span class="nm">${esc(i.name)}</span>
+        <span class="kd">${n ? plural(n, 'recipe', 'recipes') : 'Raw material'}</span>
+      </div>`;
+    }).join('');
+  }
+
+  function itemDetail() {
+    const it = GP.item(state.itemSel);
+    const recipes = GP.recipesOf(it.id);
+    const used = GP.usedIn(it.id);
+    const plans = GP.plans().filter((p) => p.item === it.id);
+    const target = plans.reduce((a, p) => a + p.target, 0);
+    return `<div class="detail scroll" data-scroll="detail">
+      <div class="d-h">${tile(it, 'lg')}<div><h2>${esc(it.name)}</h2><span class="k">${recipes.length ? 'Crafted item' : 'Raw material, can only be gathered'}</span></div>
+        <span style="flex:1"></span><button class="btn">Edit item</button></div>
+      <div class="facts">
+        <div><span>Inventory</span><b>${f(GP.inv(it.id))}</b></div>
+        <div><span>Recipes</span><b>${recipes.length}</b></div>
+        <div><span>Plans</span><b>${plans.length}</b></div>
+        <div><span>Target, all plans</span><b>${f(target)}</b></div>
+      </div>
+      <div class="h3">Recipes ${recipes.length > 1 ? '<span>Requirements uses the default recipe</span>' : ''}<span style="flex:1"></span><button class="btn">Add recipe</button></div>
+      ${recipes.length ? `<div class="recipes">${recipes.map((r) => `
+        <div class="recipe ${r.isDefault ? 'def' : ''}">
+          <div class="r-h">
+            <button class="radio ${r.isDefault ? 'on' : ''}" data-act="setdefault" data-id="${r.id}" role="radio" aria-checked="${r.isDefault}"><i></i>${r.isDefault ? 'Default recipe' : 'Use as default recipe'}</button>
+            <span class="hint">${plural(r.inputs.length, 'input', 'inputs')}</span>
+          </div>
+          ${r.inputs.map((i, n) => `<div class="r-l"><span class="w">${n === 0 ? 'Inputs' : ''}</span>${tile(i.item)}<span class="nm">${esc(i.item.name)}</span><span class="num">${f(i.perCraft)}</span></div>`).join('')}
+          <div class="r-l out"><span class="w">Output</span>${tile(it)}<span class="nm">${esc(it.name)}</span><span class="num">${f(r.output)}<small>per craft</small></span></div>
+        </div>`).join('')}</div>`
+        : `<p class="empty">No recipe. ${esc(it.name)} appears under Gather in Requirements.</p>`}
+      <div class="h3">Used in <span>${used.length ? plural(used.length, 'recipe', 'recipes') : ''}</span></div>
+      ${used.length ? `<div class="used">${GP.items().filter((x) => used.some((u) => u.id === x.id)).map((u) => GP.recipesOf(u.id).filter((r) => r.inputs.some((i) => i.item.id === it.id)).map((r) => {
+        const per = r.inputs.find((i) => i.item.id === it.id).perCraft;
+        return `<div class="u" data-act="itemsel" data-id="${u.id}">${tile(u)}<span class="nm">${esc(u.name)}</span><span class="w">${r.isDefault ? 'Default recipe' : 'Other recipe'}</span><span class="num">${f(per)} <small style="font:400 12px var(--ui);color:var(--t3)">per craft</small></span></div>`;
+      }).join('')).join('')}</div>` : `<p class="empty">Not an input of any recipe.</p>`}
+    </div>`;
+  }
+
+  function itemsScreen() {
+    const all = GP.items();
+    const raw = all.filter((i) => GP.isRaw(i.id)).length;
+    return `<section class="main">
+      <header class="head"><h1>Items</h1><span class="meta">${all.length} items, ${raw} raw materials</span><span class="sp"></span><button class="btn primary">Add item</button></header>
+      <div class="split">
+        <div class="ilist">
+          <div class="search"><input class="field" id="item-q" placeholder="Search items" value="${esc(state.q)}" aria-label="Search items"></div>
+          <div class="scroll" id="item-list" data-scroll="ilist" style="flex:1">${itemRows()}</div>
+        </div>
+        ${itemDetail()}
+      </div>
+    </section>`;
+  }
+
+  /* ---------- Inventory ---------- */
+  function inventoryScreen() {
+    const req = GP.requirements();
+    const need = {};
+    req.gather.concat(req.craft).forEach((r) => { need[r.item.id] = r; });
+    const all = GP.items();
+    const owned = all.filter((i) => GP.inv(i.id) > 0).length;
+    return `<section class="main">
+      <header class="head"><h1>Inventory</h1><span class="meta">${owned} of ${all.length} items owned</span></header>
+      <div class="trow th inv-cols"><div>Item</div><div>Kind</div><div style="text-align:right">Amount owned</div><div style="text-align:right">Need</div><div style="text-align:right">Missing</div><div></div></div>
+      <div class="scroll" data-scroll="inv" style="flex:1">
+        ${all.map((i) => {
+          const r = need[i.id];
+          return `<div class="trow inv-cols">
+            <div class="ci">${tile(i)}<span class="nm">${esc(i.name)}</span></div>
+            <div style="color:var(--t3)">${GP.isRaw(i.id) ? 'Raw material' : 'Crafted'}</div>
+            <div class="step">
+              <button class="btn" data-act="invstep" data-id="${i.id}" data-d="-1" aria-label="One less">−</button>
+              <input class="field num" data-inv="${i.id}" inputmode="decimal" value="${f(GP.inv(i.id))}" aria-label="Amount of ${esc(i.name)} owned">
+              <button class="btn" data-act="invstep" data-id="${i.id}" data-d="1" aria-label="One more">+</button>
+            </div>
+            <div class="num ${r ? '' : 'dim'}">${r ? f(r.need) : '0'}</div>
+            <div class="num ${r && r.missing > 0 ? 'key' : 'dim'}">${r ? f(r.missing) : '0'}</div>
+            <div></div>
+          </div>`;
+        }).join('')}
+        <p class="caption">Need and Missing come from Requirements, across all plans. Items no plan needs show 0.</p>
+      </div>
+    </section>`;
+  }
+
+  /* ---------- Library ---------- */
+  function libraryScreen() {
+    const req = GP.requirements();
+    const live = {
+      items: GP.items().length,
+      recipes: GP.items().reduce((a, i) => a + GP.recipesOf(i.id).length, 0),
+      plans: GP.plans().length,
+    };
+    const toGather = req.gather.filter((g) => g.missing > 0).length;
+    const crafts = req.craft.reduce((a, c) => a + c.crafts, 0);
+    return `<section class="lib">
+      <header class="head"><h1>Game Planner</h1><span class="sp"></span><button class="btn primary">Add game</button></header>
+      <div class="lib-b scroll">
+        <h2>Games</h2>
+        <p>${GP.games.length} games. Items, recipes, inventory and plans belong to one game each.</p>
+        <div class="games">
+          ${GP.games.map((g) => {
+            const s = g.stats || live;
+            const cur = g.id === GP.currentGame.id;
+            return `<button class="gcard" ${cur ? 'data-act="nav" data-to="requirements"' : ''}>
+              <div class="thumb" style="--h:${g.hue}"><b>${GP.initials(g.title)}</b><span>No thumbnail</span></div>
+              <div class="g-b"><b>${esc(g.title)}</b><span>${esc(g.blurb)}</span></div>
+              <div class="g-s">
+                <div><span>Items</span><span class="num">${s.items}</span></div>
+                <div><span>Recipes</span><span class="num">${s.recipes}</span></div>
+                <div><span>Plans</span><span class="num">${s.plans}</span></div>
+              </div>
+              <div class="g-f">${cur ? `<span class="now">${plural(toGather, 'raw material', 'raw materials')} to gather, ${plural(crafts, 'craft', 'crafts')}</span>` : `<span>${s.plans ? 'Plans in progress' : 'No plans yet'}</span>`}</div>
+            </button>`;
+          }).join('')}
+          <button class="gadd"><b>Add game</b><span>Title and an optional thumbnail</span></button>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  /* ---------- Render ---------- */
+  const app = document.getElementById('app');
+  function render() {
+    const keep = {};
+    app.querySelectorAll('[data-scroll]').forEach((el) => { keep[el.dataset.scroll] = el.scrollTop; });
+    if (state.screen === 'library') app.innerHTML = libraryScreen();
+    else {
+      const body = { requirements, plans: plansScreen, items: itemsScreen, inventory: inventoryScreen }[state.screen]();
+      app.innerHTML = sidebar() + body;
+    }
+    app.querySelectorAll('[data-scroll]').forEach((el) => { if (keep[el.dataset.scroll]) el.scrollTop = keep[el.dataset.scroll]; });
+  }
+
+  function doGather(id, box) {
+    const input = box && box.querySelector(`[data-gather="${id}"]`);
+    const v = input ? parseFloat(input.value) : NaN;
+    state.sel = id;
+    if (v > 0) GP.addInv(id, v); else { render(); }
+  }
+
+  app.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]');
+    if (!el || el.disabled) return;
+    const d = el.dataset;
+    switch (d.act) {
+      case 'nav': if (location.hash === '#' + d.to) route(); else location.hash = d.to; break;
+      case 'sel':
+        if (e.target.closest('input')) return;
+        if (state.sel !== d.id) { state.sel = d.id; render(); }
+        break;
+      case 'craft': state.sel = d.id; GP.craft(d.id, +d.n); break;
+      case 'gather': doGather(d.id, el.closest('[data-gbox]')); break;
+      case 'delplan': GP.deletePlan(d.id); break;
+      case 'addplan': {
+        const t = parseFloat(document.getElementById('np-target').value);
+        if (t > 0) GP.addPlan(document.getElementById('np-item').value, t, document.getElementById('np-note').value.trim());
+        else document.getElementById('np-target').focus();
+        break;
+      }
+      case 'itemsel': state.itemSel = d.id; render(); break;
+      case 'setdefault': if (!el.classList.contains('on')) GP.setDefault(d.id); break;
+      case 'invstep': GP.setInv(d.id, GP.inv(d.id) + +d.d); break;
+    }
+  });
+  app.addEventListener('input', (e) => {
+    if (e.target.id === 'item-q') {
+      state.q = e.target.value;
+      document.getElementById('item-list').innerHTML = itemRows();
+    }
+  });
+  app.addEventListener('change', (e) => {
+    if (e.target.dataset.inv) GP.setInv(e.target.dataset.inv, parseFloat(e.target.value));
+  });
+  app.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.dataset.gather) doGather(e.target.dataset.gather, e.target.closest('[data-gbox]'));
+    if (e.key === 'Enter' && (e.target.id === 'np-target' || e.target.id === 'np-note')) app.querySelector('[data-act="addplan"]').click();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (state.screen !== 'requirements' || /INPUT|SELECT/.test(e.target.tagName)) return;
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const req = GP.requirements();
+    const ids = req.gather.concat(req.craft).map((r) => r.item.id);
+    const i = ids.indexOf(state.sel) + (e.key === 'ArrowDown' ? 1 : -1);
+    if (i >= 0 && i < ids.length) { state.sel = ids[i]; render(); }
+    e.preventDefault();
+  });
+
+  GP.on(render);
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+</body>
+</html>

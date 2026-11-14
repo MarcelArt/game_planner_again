@@ -1,0 +1,48 @@
+entity-relationship-diagram
+
+games {
+    id uuid pk
+    title String
+    thumbnail String
+}
+
+items {
+    id uuid pk
+    name String
+    icon String
+    game_id uuid fk
+}
+items.game_id > games.id
+
+recipes {
+    id uuid pk
+    output decimal
+    is_default boolean
+    item_id uuid fk
+}
+recipes.item_id > items.id
+
+recipe_details {
+    id uuid pk
+    input decimal
+    item_id uuid fk
+    recipe_id uuid fk
+}
+recipe_details.item_id > items.id
+recipe_details.recipe_id > recipes.id
+
+inventories {
+    id uuid pk
+    amount decimal
+    item_id uuid fk
+}
+inventories.item_id > items.id
+
+plans {
+    id uuid pk
+    target decimal
+    note String
+    created_at timestamp
+    item_id uuid fk
+}
+plans.item_id > items.id
