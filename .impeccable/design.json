@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-14T06:34:59Z",
+  "title": "Design System: Game Planner",
+  "extensions": {
+    "colorMeta": {
+      "lamp": { "role": "primary", "displayName": "Workshop Lamp", "canonical": "#fbd960", "tonalRamp": ["oklch(15% 0.05 95)", "oklch(26% 0.09 95)", "oklch(37% 0.12 95)", "oklch(48% 0.14 95)", "oklch(60% 0.155 95)", "oklch(72% 0.165 95)", "oklch(84% 0.17 95)", "oklch(95% 0.06 95)"] },
+      "steel": { "role": "secondary", "displayName": "Workshop Steel", "canonical": "#8799ab", "tonalRamp": ["oklch(15% 0.01 250)", "oklch(26% 0.015 250)", "oklch(37% 0.02 250)", "oklch(48% 0.022 250)", "oklch(60% 0.025 250)", "oklch(72% 0.025 250)", "oklch(84% 0.02 250)", "oklch(95% 0.008 250)"] },
+      "go-green": { "role": "tertiary", "displayName": "Go-Light Green", "canonical": "#55c792", "tonalRamp": ["oklch(15% 0.05 160)", "oklch(26% 0.09 160)", "oklch(37% 0.12 160)", "oklch(48% 0.135 160)", "oklch(60% 0.145 160)", "oklch(72% 0.15 160)", "oklch(84% 0.14 160)", "oklch(95% 0.05 160)"] },
+      "signal-red": { "role": "tertiary", "displayName": "Signal Red", "canonical": "#ff8196", "tonalRamp": ["oklch(15% 0.06 15)", "oklch(26% 0.1 15)", "oklch(37% 0.13 15)", "oklch(48% 0.15 15)", "oklch(60% 0.165 15)", "oklch(72% 0.17 15)", "oklch(84% 0.15 15)", "oklch(95% 0.05 15)"] },
+      "bg": { "role": "neutral", "displayName": "Room", "canonical": "#191a1c", "tonalRamp": ["oklch(15% 0.004 260)", "oklch(26% 0.005 260)", "oklch(37% 0.006 260)", "oklch(48% 0.007 260)", "oklch(60% 0.008 260)", "oklch(72% 0.008 260)", "oklch(84% 0.006 260)", "oklch(95% 0.003 260)"] },
+      "side": { "role": "neutral", "displayName": "Side", "canonical": "#232426", "tonalRamp": ["oklch(15% 0.004 260)", "oklch(26% 0.005 260)", "oklch(37% 0.006 260)", "oklch(48% 0.007 260)", "oklch(60% 0.008 260)", "oklch(72% 0.008 260)", "oklch(84% 0.006 260)", "oklch(95% 0.003 260)"] },
+      "tile": { "role": "neutral", "displayName": "Tile", "canonical": "#212225", "tonalRamp": ["oklch(15% 0.004 260)", "oklch(26% 0.005 260)", "oklch(37% 0.006 260)", "oklch(48% 0.007 260)", "oklch(60% 0.008 260)", "oklch(72% 0.008 260)", "oklch(84% 0.006 260)", "oklch(95% 0.003 260)"] },
+      "well": { "role": "neutral", "displayName": "Well", "canonical": "#121314", "tonalRamp": ["oklch(15% 0.004 260)", "oklch(26% 0.005 260)", "oklch(37% 0.006 260)", "oklch(48% 0.007 260)", "oklch(60% 0.008 260)", "oklch(72% 0.008 260)", "oklch(84% 0.006 260)", "oklch(95% 0.003 260)"] },
+      "slate": { "role": "neutral", "displayName": "Slate", "canonical": "#404144", "tonalRamp": ["oklch(15% 0.005 260)", "oklch(26% 0.006 260)", "oklch(37% 0.007 260)", "oklch(48% 0.008 260)", "oklch(60% 0.009 260)", "oklch(72% 0.009 260)", "oklch(84% 0.007 260)", "oklch(95% 0.003 260)"] },
+      "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#a7a8ac", "tonalRamp": ["oklch(15% 0.005 260)", "oklch(26% 0.007 260)", "oklch(37% 0.008 260)", "oklch(48% 0.009 260)", "oklch(60% 0.01 260)", "oklch(72% 0.01 260)", "oklch(84% 0.008 260)", "oklch(95% 0.004 260)"] }
+    },
+    "typographyMeta": {
+      "headline": { "displayName": "Headline", "purpose": "Page titles and brand; weight 800 does the work." },
+      "title": { "displayName": "Title", "purpose": "Section titles with muted notes; nav items run 16px/700." },
+      "body": { "displayName": "Body", "purpose": "The app's base size; tabular figures keep amounts columnized." },
+      "label": { "displayName": "Label", "purpose": "Pills, flags, badges, tab labels; never below 12px." }
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action of a form; lamp fill, dark ink.",
+      "html": "<button class=\"ds-btn-primary\">Add plan</button>",
+      "css": ".ds-btn-primary { font-family: \"Open Sans\", \"Segoe UI\", system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 7px; background: #fbd960; color: #221b02; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer; } .ds-btn-primary:hover { background: #fbde75; } .ds-btn-primary:active { background: #e9c84f; } .ds-btn-primary:focus-visible { outline: 2px solid #fbd960; outline-offset: 2px; }"
+    },
+    {
+      "name": "Go Button",
+      "kind": "button",
+      "refersTo": "button-go",
+      "description": "Craft actions only (Craft 1, Craft all); green go-light.",
+      "html": "<button class=\"ds-btn-go\">Craft 1</button>",
+      "css": ".ds-btn-go { font-family: \"Open Sans\", \"Segoe UI\", system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 7px; background: #3f9d71; color: #04170e; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer; } .ds-btn-go:hover { background: #55c792; } .ds-btn-go:focus-visible { outline: 2px solid #fbd960; outline-offset: 2px; }"
+    },
+    {
+      "name": "Plain Button",
+      "kind": "button",
+      "refersTo": "button-plain",
+      "description": "Every secondary action; flush graphite surface, disabled parks visibly.",
+      "html": "<button class=\"ds-btn-plain\">Cancel</button> <button class=\"ds-btn-plain\" disabled>Craft all</button>",
+      "css": ".ds-btn-plain { font-family: \"Open Sans\", \"Segoe UI\", system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 7px; background: #2b2c2e; color: #e5e5e7; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer; } .ds-btn-plain:hover { background: #37383c; } .ds-btn-plain:focus-visible { outline: 2px solid #fbd960; outline-offset: 2px; } .ds-btn-plain:disabled { background: #121314; border: 1px solid #2e2f32; color: #8a8b8f; cursor: not-allowed; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Delete and destroy; red text on graphite, red-wash hover.",
+      "html": "<button class=\"ds-btn-danger\">Delete</button>",
+      "css": ".ds-btn-danger { font-family: \"Open Sans\", \"Segoe UI\", system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 0; border-radius: 7px; background: #2b2c2e; color: #ff8196; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer; } .ds-btn-danger:hover { background: #5a2630; } .ds-btn-danger:focus-visible { outline: 2px solid #fbd960; outline-offset: 2px; }"
+    },
+    {
+      "name": "Amount Well",
+      "kind": "input",
+      "refersTo": "well",
+      "description": "The signature amount field: a socket sunk into the surface holding one centered bold number.",
+      "html": "<div class=\"ds-well\"><input value=\"40\" /><button>+</button></div>",
+      "css": ".ds-well { display: flex; align-items: center; height: 34px; border-radius: 7px; background: #121314; border: 1px solid #1c1d1f; } .ds-well input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; text-align: center; font-family: \"Open Sans\", \"Segoe UI\", system-ui, sans-serif; font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; color: #ffffff; padding: 0 4px; } .ds-well input::placeholder { color: #a7a8ac; font-weight: 600; font-size: 13px; } .ds-well button { flex: none; height: 26px; min-width: 30px; margin: 0 3px; padding: 0 7px; border: 0; border-radius: 5px; background: #2b2c2e; color: #e5e5e7; font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; } .ds-well button:hover { background: #37383c; }"
+    },
+    {
+      "name": "Pill",
+      "kind": "chip",
+      "refersTo": "pill",
+      "description": "State badge; fill and text pair carries meaning, never a second color per state.",
+      "html": "<span class=\"ds-pill ds-pill-go\">Ready</span> <span class=\"ds-pill ds-pill-lamp\">3 plans</span> <span class=\"ds-pill ds-pill-neutral\">Gather</span> <span class=\"ds-pill ds-pill-steel\">Recipe loop</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 6px; font-family: \"Open Sans\", \"Segoe UI\", system-ui, sans-serif; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; } .ds-pill-go { background: #173a2a; color: #55c792; } .ds-pill-lamp { background: #514721; color: #fdeaa4; } .ds-pill-neutral { background: #404144; color: #ececed; } .ds-pill-steel { background: #8799ab; color: #111519; }"
+    },
+    {
+      "name": "Item Tile",
+      "kind": "card",
+      "refersTo": "tile",
+      "description": "Item card: tier-tinted picture square with glassy initials fallback, bold name, key-value row.",
+      "html": "<button class=\"ds-tile\"><span class=\"ds-tile-pic ds-tile-tint-raw\"><span class=\"ds-tile-fb\">TI</span></span><span class=\"ds-tile-nm\">Torch</span><span class=\"ds-tile-kv\"><span>owned</span><b>38<small>of 40</small></b></span></button>",
+      "css": ".ds-tile { display: flex; flex-direction: column; text-align: left; padding: 6px; border-radius: 10px; background: #212225; border: 1px solid #2e2f32; cursor: pointer; font-family: \"Open Sans\", \"Segoe UI\", system-ui, sans-serif; } .ds-tile:hover { border-color: #45464a; } .ds-tile:focus-visible { outline: 2px solid #fbd960; outline-offset: 2px; } .ds-tile-pic { display: grid; place-items: center; height: 84px; border-radius: 8px; overflow: hidden; } .ds-tile-tint-raw { background: linear-gradient(160deg, #557f6b, #446958); } .ds-tile-fb { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 6px; background: rgba(18, 19, 20, 0.28); border: 1px solid rgba(255, 255, 255, 0.22); color: #ffffff; font-weight: 800; letter-spacing: 0.02em; } .ds-tile-nm { margin: 7px 3px 2px; font-size: 14px; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .ds-tile-kv { display: flex; align-items: baseline; justify-content: space-between; margin: 0 3px; height: 21px; font-size: 12.5px; font-weight: 600; color: #a7a8ac; font-variant-numeric: tabular-nums; } .ds-tile-kv b { font-size: 15px; font-weight: 700; color: #ffffff; } .ds-tile-kv b small { font-size: 12px; font-weight: 700; color: #8799ab; margin-left: 3px; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Sidebar destination; active item sinks into the room with a go-light count badge.",
+      "html": "<a class=\"ds-nav ds-nav-on\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 6h16M4 12h10M4 18h7\"/></svg>Requirements<span class=\"ds-nav-n\">3</span></a>",
+      "css": ".ds-nav { display: flex; align-items: center; gap: 11px; height: 44px; padding: 0 11px; border-radius: 10px; border: 1px solid transparent; color: #a7a8ac; font-family: \"Open Sans\", \"Segoe UI\", system-ui, sans-serif; font-size: 16px; font-weight: 700; text-decoration: none; cursor: pointer; } .ds-nav:hover { color: #e0e1e3; } .ds-nav:focus-visible { outline: 2px solid #fbd960; outline-offset: 2px; } .ds-nav-on { background: #191a1c; border-color: #292a2d; color: #ffffff; } .ds-nav-n { margin-left: auto; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 11px; background: #173a2a; color: #55c792; font-size: 12px; font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "search",
+      "description": "Item search: well-dark socket, muted icon, lamp border on focus.",
+      "html": "<label class=\"ds-search\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-3.5-3.5\"/></svg><input placeholder=\"Search items\" /></label>",
+      "css": ".ds-search { display: flex; align-items: center; gap: 8px; width: 280px; height: 40px; padding: 0 12px; border-radius: 10px; background: #121314; border: 1px solid #292a2d; color: #a7a8ac; } .ds-search:focus-within { border-color: #fbd960; } .ds-search input { flex: 1; min-width: 0; background: none; border: 0; outline: 0; color: #ffffff; font-family: \"Open Sans\", \"Segoe UI\", system-ui, sans-serif; font-weight: 600; font-size: 14px; } .ds-search input::placeholder { color: #a7a8ac; font-weight: 500; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Night Workshop",
+    "overview": "A graphite workshop at night, lit by one warm lamp. The app is calm precision: near-black surfaces do the work, a single lamp-yellow marks where to look and what to act on, cool steel annotates the counts, and green go-lights say when something is ready to make. Nothing shouts, nothing moves; the player glances, reads a number, and returns to the game.\n\nThe room is built from three tonal steps of graphite — wells sink below the floor (#121314 inset into #191a1c), tiles and rows sit a step above it (#212225), the sidebar a step further (#232426) — separated by 1px edges (#2e2f32), never by shadows. Depth is tone; selection is a lamp border with an inset ring, not elevation. Every control is flush: states swap color instantly, with no lift, glow, or transition. Type is one family, Open Sans, in weights 500–800, set with tabular figures so columns of amounts align mid-glance; hierarchy comes from weight as much as size. Density is comfortable-dense inside one fixed desktop window (~1440×900) where panes scroll and the window never does.\n\nThe navy/violet/gold scheme of the seelie.me reference was explicitly rejected during direction selection; the demo's legacy variable names (--violet, --gold) are historical accidents of that re-theme — the hues they hold are lamp yellow and steel blue, and they carry no violet or gold meaning.",
+    "keyCharacteristics": [
+      "Graphite tonal layering (well → bg → tile → side) with 1px edges; zero drop shadows, zero blur",
+      "One warm accent (Workshop Lamp #fbd960) used sparingly for selection and the primary action",
+      "State colors as traffic lights: Go-Light Green for ready/craft/reached, Signal Red for danger; Workshop Steel for annotation, never state",
+      "Flush, instant controls — color swaps only, no motion",
+      "Single-family type (Open Sans 500–800) with tabular figures everywhere numbers line up",
+      "Game imagery honored: pixel-art icons render pixelated, missing images fall back to a glassy initials tile that looks intentional"
+    ],
+    "rules": [
+      { "name": "The One Lamp Rule", "body": "Workshop Lamp marks selection and the single primary action of a surface. If lamp yellow covers more than ~10% of a screen, the screen is wrong.", "section": "colors" },
+      { "name": "The Traffic-Light Rule", "body": "Green means go (ready, craft, reached); red means destroy or danger. Steel and slate annotate but never signal. A color never carries two meanings, and no state gets a second color.", "section": "colors" },
+      { "name": "The Tabular Rule", "body": "Every numeric glyph renders tabular (font-feature: \"tnum\" set app-wide). Amounts, counts, and targets must align in columns from any glance distance.", "section": "typography" },
+      { "name": "The No-Shadow Rule", "body": "No drop shadows, no blur, no floating layers, ever. If a surface must stand apart, step its tone and draw a 1px edge.", "section": "elevation" },
+      { "name": "The Two-Tone Rule", "body": "Any gradient is exactly two close tones of one family, fading to a neutral. Border and label color carry the meaning; the gradient only warms the surface.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do put every editable amount in a well — sunk, centered, bold — so numbers are findable in one scan.",
+      "Do pair each \"still needed\" figure with its \"owned\" counterpart at the same baseline.",
+      "Do render game icons pixelated and give missing images the glassy initials tile; both look intentional.",
+      "Do keep gradients to the two-tone atmospheric form (tier tints, state washes) with meaning carried by border and label color.",
+      "Do change state instantly — a color swap with no transition is the system's speed of response."
+    ],
+    "donts": [
+      "Don't add drop shadows, blur, glow, or any floating layer.",
+      "Don't use Workshop Lamp beyond selection and the single primary action (The One Lamp Rule).",
+      "Don't set body text below 14px or labels below 12px; keep contrast at 4.5:1 or better.",
+      "Don't reuse the legacy demo variable names (--violet, --gold) as semantic guidance — those tokens hold lamp yellow and steel blue, and the seelie navy/violet/gold scheme they came from was rejected.",
+      "Don't introduce motion latency (transitions, animated state changes) — a glance must never wait."
+    ]
+  }
+}
