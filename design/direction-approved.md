@@ -9,4 +9,8 @@ Shown: `design-demos/dir-1.html` (Wide tiles), `dir-2.html` (Rows), `dir-3.html`
 User: "I like design 3 layout, but the colouring are too similar with my reference https://seelie.me/inventory"
 
 Decision: layout of direction 3 (Grid and panel). Colour to be changed away from the reference's navy, violet and gold.
-Colour options shown next: `design-demos/dir-3-ember.html`, `dir-3-graphite.html`, `dir-3-pine.html`, `dir-3-light.html` (`shots/colour-options.jpg`). Choice pending.
+Colour options shown next: `design-demos/dir-3-ember.html`, `dir-3-graphite.html`, `dir-3-pine.html`, `dir-3-light.html` (`shots/colour-options.jpg`).
+
+## Colour (chosen)
+User: "graphite"
+Final design file: `design-demos/dir-3-graphite.html`.

@@ -1,36 +1,32 @@
-use gpui_kit::component::button::{Button, ButtonVariants};
+mod calc;
+mod db;
+mod domain;
+mod ui;
+
+use std::rc::Rc;
+
 use gpui_kit::*;
 
-struct HelloWorld;
-
-impl Render for HelloWorld {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        div()
-            .flex()
-            .flex_col()
-            .size_full()
-            .items_center()
-            .justify_center()
-            .gap_2()
-            .child("Hello, World!")
-            .child(
-                Button::new("hello")
-                    .primary()
-                    .label("Click me")
-                    .on_click(|_, _, _| println!("Clicked!")),
-            )
-    }
-}
-
 fn main() {
-    application()
-        .with_assets(assets::Assets)
-        .run(|cx| {
-            init(cx);
+    let db = match db::default_data_dir().and_then(db::Db::open) {
+        Ok(db) => Rc::new(db),
+        Err(err) => {
+            eprintln!("Game Planner could not open its data folder: {err:#}");
+            std::process::exit(1);
+        }
+    };
 
-            open_window(WindowOptions::default(), cx, |_, cx| {
-                cx.new(|_| HelloWorld)
-            })
-            .expect("Failed to open window");
-        });
+    application().with_assets(assets::AllAssets).run(move |cx| {
+        init(cx);
+        ui::apply_theme(cx);
+
+        let options = WindowOptions {
+            window_bounds: Some(WindowBounds::centered(size(px(1440.), px(900.)), cx)),
+            window_min_size: Some(size(px(1100.), px(680.))),
+            titlebar: Some(TitlebarOptions { title: Some("Game Planner".into()), ..Default::default() }),
+            app_id: Some("game-planner".into()),
+            ..Default::default()
+        };
+        open_window(options, cx, move |window, cx| cx.new(|cx| ui::Planner::new(db, window, cx))).expect("failed to open window");
+    });
 }
