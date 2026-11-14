@@ -2112,7 +2112,7 @@ dependencies = [
 
 [[package]]
 name = "game_planner_again"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "dirs 7.0.0",
