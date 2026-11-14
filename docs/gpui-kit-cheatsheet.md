@@ -68,7 +68,7 @@ fn main() {
             window_bounds: Some(WindowBounds::centered(size(px(1280.), px(800.)), cx)),
             window_min_size: Some(size(px(960.), px(600.))),
             titlebar: Some(TitlebarOptions { title: Some("Game Planner".into()), ..Default::default() }),
-            app_id: Some("game-planner".into()),
+            app_id: Some("art.bangmarcel.gameplanner".into()),
             ..Default::default()
         };
         open_window(options, cx, |_window, cx| cx.new(|_| HelloWorld)).expect("failed to open window");
