@@ -60,7 +60,8 @@ pub struct Imported {
     pub recipes: usize,
 }
 
-/// `$XDG_DATA_HOME/game_planner`, falling back to `~/.local/share/game_planner`.
+/// `game_planner` in the system data folder: `$XDG_DATA_HOME` or `~/.local/share` on Linux,
+/// `%APPDATA%` on Windows, `~/Library/Application Support` on macOS.
 /// Debug builds use `game_planner.dev` instead, so development never touches real data.
 pub fn default_data_dir() -> Result<PathBuf> {
     let name = if cfg!(debug_assertions) { "game_planner.dev" } else { "game_planner" };

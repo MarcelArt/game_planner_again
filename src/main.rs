@@ -1,3 +1,6 @@
+// A release build on Windows is a GUI program: no console window opens alongside it.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod calc;
 mod db;
 mod domain;
@@ -17,8 +20,10 @@ fn main() {
         }
     };
 
-    application().with_assets(assets::AllAssets).run(move |cx| {
+    // macOS keeps an app running after its last window closes; this one has nothing to do then.
+    application().with_assets(assets::AllAssets).with_quit_mode(QuitMode::LastWindowClosed).run(move |cx| {
         init(cx);
+        ui::add_fonts(cx);
         ui::apply_theme(cx);
 
         let options = WindowOptions {

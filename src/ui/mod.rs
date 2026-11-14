@@ -60,6 +60,19 @@ pub mod pal {
     pub const TINT_END: (u32, u32) = (0x847a55, 0x706644);
 }
 
+/// Registers the bundled Open Sans, so the app looks the same where it is not installed.
+pub fn add_fonts(cx: &mut App) {
+    let fonts: [&'static [u8]; 4] = [
+        include_bytes!("../../assets/fonts/OpenSans-Regular.ttf"),
+        include_bytes!("../../assets/fonts/OpenSans-SemiBold.ttf"),
+        include_bytes!("../../assets/fonts/OpenSans-Bold.ttf"),
+        include_bytes!("../../assets/fonts/OpenSans-ExtraBold.ttf"),
+    ];
+    if let Err(err) = cx.text_system().add_fonts(fonts.into_iter().map(std::borrow::Cow::Borrowed).collect()) {
+        eprintln!("Game Planner could not load its fonts: {err:#}");
+    }
+}
+
 /// Applies the Graphite palette to the component library's theme.
 pub fn apply_theme(cx: &mut App) {
     Theme::change(ThemeMode::Dark, None, cx);

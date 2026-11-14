@@ -25,7 +25,7 @@ Game Planner: a Rust (edition 2024) Linux desktop app that records what a game's
 
 ## Architecture
 
-Real data lives in `$XDG_DATA_HOME/game_planner` (`~/.local/share/game_planner`): `game_planner.db` plus `images/<game id>/`. Debug builds (`cargo run`) use `game_planner.dev` in the same place instead; only `cargo run --release` touches the real folder. Image paths in the database are relative to that folder.
+The app is meant to run on Linux, Windows and macOS, though only Linux is tested. Real data lives in `game_planner` under the system data folder from `dirs::data_dir()` — on Linux `$XDG_DATA_HOME/game_planner` (`~/.local/share/game_planner`): `game_planner.db` plus `images/<game id>/`. Debug builds (`cargo run`) use `game_planner.dev` in the same place instead; only `cargo run --release` touches the real folder. Image paths in the database are relative to that folder.
 
 - `src/domain.rs` — plain types; `GameData` is one game's items, recipes, inventory and plans as loaded.
 - `src/calc.rs` — the calculation (`requirements`, `plan_progress`, `craftable`). Pure, no database or UI; its tests are the specification of the rules (whole crafts, shared surplus, inventory netted at every level, recipe loops, oldest plan first).
@@ -34,6 +34,7 @@ Real data lives in `$XDG_DATA_HOME/game_planner` (`~/.local/share/game_planner`)
 - `src/ui/` — one view, `Planner` (`mod.rs`), holding the open game's `GameData` and the calculated `Requirements`; `requirements.rs` and `pages.rs` render the five pages as methods on it. Every action follows the same path: call a `Db` method, then `finish(result, window, cx)`, which reports an error as a notification and calls `reload` to re-read the game and recalculate. Nothing is patched in memory.
 - Colours come from `ui::pal` (the Graphite palette), also applied to the component library's theme in `apply_theme`. Buttons, pills and wells are the helpers at the bottom of `ui/mod.rs`, not the library's `Button`.
 - Text fields are `InputState` entities owned by `Planner`. Per-item fields (inventory, gathered amount) are created lazily in `ensure_fields`. An `InputState` must be rendered by only one `Input` at a time.
+- `assets/fonts/` holds the Open Sans weights the UI uses, embedded and registered by `ui::add_fonts`; no system font is assumed. `build.rs` embeds the Windows manifest in `assets/windows/`, which gpui-kit leaves to the application.
 - The renderer always smooths enlarged images, so `Db::import_image` enlarges small pictures (pixel art) once, without smoothing, when they are imported.
 
 ## gpui-kit
