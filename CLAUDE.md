@@ -17,7 +17,7 @@ Game Planner: a Rust (edition 2024) Linux desktop app that records what a game's
 - `cargo test` / `cargo test <name>` — all tests / one test. Test builds enable gpui-kit's `test-support` feature, so the first run recompiles the GPUI stack.
 - Try the app on sample data without touching real data:
   ```
-  SEED_DIR=/tmp/gp/game_planner cargo test seed_sample_game -- --ignored
+  SEED_DIR=/tmp/gp/game_planner.dev cargo test seed_sample_game -- --ignored
   XDG_DATA_HOME=/tmp/gp GAME_PLANNER_START=requirements cargo run
   ```
   `GAME_PLANNER_START` (`requirements|plans|items|inventory`) opens the first game on that page; `SEED_ICONS=<dir>` adds `<item_name>.png` icons while seeding.
@@ -25,7 +25,7 @@ Game Planner: a Rust (edition 2024) Linux desktop app that records what a game's
 
 ## Architecture
 
-Real data lives in `$XDG_DATA_HOME/game_planner` (`~/.local/share/game_planner`): `game_planner.db` plus `images/<game id>/`. Image paths in the database are relative to that folder.
+Real data lives in `$XDG_DATA_HOME/game_planner` (`~/.local/share/game_planner`): `game_planner.db` plus `images/<game id>/`. Debug builds (`cargo run`) use `game_planner.dev` in the same place instead; only `cargo run --release` touches the real folder. Image paths in the database are relative to that folder.
 
 - `src/domain.rs` — plain types; `GameData` is one game's items, recipes, inventory and plans as loaded.
 - `src/calc.rs` — the calculation (`requirements`, `plan_progress`, `craftable`). Pure, no database or UI; its tests are the specification of the rules (whole crafts, shared surplus, inventory netted at every level, recipe loops, oldest plan first).

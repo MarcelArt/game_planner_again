@@ -38,8 +38,10 @@ pub struct GameStats {
 }
 
 /// `$XDG_DATA_HOME/game_planner`, falling back to `~/.local/share/game_planner`.
+/// Debug builds use `game_planner.dev` instead, so development never touches real data.
 pub fn default_data_dir() -> Result<PathBuf> {
-    Ok(dirs::data_dir().context("no data folder on this system")?.join("game_planner"))
+    let name = if cfg!(debug_assertions) { "game_planner.dev" } else { "game_planner" };
+    Ok(dirs::data_dir().context("no data folder on this system")?.join(name))
 }
 
 fn now_ms() -> i64 {
