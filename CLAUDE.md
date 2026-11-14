@@ -40,7 +40,7 @@ The app is meant to run on Linux, Windows and macOS, though only Linux is tested
 - `src/ui/` — one view, `Planner` (`mod.rs`), holding the open game's `GameData` and the calculated `Requirements`; `requirements.rs` and `pages.rs` render the five pages as methods on it. Every action follows the same path: call a `Db` method, then `finish(result, window, cx)`, which reports an error as a notification and calls `reload` to re-read the game and recalculate. Nothing is patched in memory.
 - Colours come from `ui::pal` (the Graphite palette), also applied to the component library's theme in `apply_theme`. Buttons, pills and wells are the helpers at the bottom of `ui/mod.rs`, not the library's `Button`.
 - Text fields are `InputState` entities owned by `Planner`. Per-item fields (inventory, gathered amount) are created lazily in `ensure_fields`. An `InputState` must be rendered by only one `Input` at a time.
-- `assets/fonts/` holds the Open Sans weights the UI uses, embedded and registered by `ui::add_fonts`; no system font is assumed. `build.rs` embeds the Windows manifest in `assets/windows/`, which gpui-kit leaves to the application.
+- `assets/fonts/` holds the Open Sans weights the UI uses, embedded and registered by `ui::add_fonts`; no system font is assumed. `build.rs` embeds the Windows program icon from `assets/windows/`. Do not add a Windows manifest there: gpui-kit's GPUI dependency already embeds one, and a second breaks the Windows link.
 - The renderer always smooths enlarged images, so `Db::import_image` enlarges small pictures (pixel art) once, without smoothing, when they are imported.
 
 ## gpui-kit
