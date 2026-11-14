@@ -23,6 +23,12 @@ Game Planner: a Rust (edition 2024) Linux desktop app that records what a game's
   `GAME_PLANNER_START` (`requirements|plans|items|inventory`) opens the first game on that page; `SEED_ICONS=<dir>` adds `<item_name>.png` icons while seeding.
 - To look at the running app on this machine (KDE Wayland): `spectacle -b -a -n -o out.png` captures the active window. Clicks cannot be automated there; cover interactions with UI tests instead.
 
+## Releasing
+
+- `just release 1.2.3` sets the version in `Cargo.toml`, commits, tags `v1.2.3` and pushes. The tag starts `.github/workflows/release.yml`, which builds an AppImage, a Windows zip and a macOS disk image and publishes them as a GitHub release. The workflow fails if the tag and the `Cargo.toml` version differ. Started by hand, it only builds.
+- `packaging/` holds what the builds need: the icon (`icon.svg` is the source; the PNGs and `assets/windows/game_planner.ico` are rendered from it), the Linux desktop file, and the scripts that make the AppImage and the macOS app. `just appimage` runs the Linux one locally.
+- The app's identity is `art.bangmarcel.gameplanner` everywhere (`APP_ID` in `src/main.rs`, the desktop file's name, the macOS bundle identifier). Keep them the same.
+
 ## Architecture
 
 The app is meant to run on Linux, Windows and macOS, though only Linux is tested. Real data lives in `game_planner` under the system data folder from `dirs::data_dir()` — on Linux `$XDG_DATA_HOME/game_planner` (`~/.local/share/game_planner`): `game_planner.db` plus `images/<game id>/`. Debug builds (`cargo run`) use `game_planner.dev` in the same place instead; only `cargo run --release` touches the real folder. Image paths in the database are relative to that folder.

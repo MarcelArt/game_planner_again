@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Placeholder app icon in the Graphite palette: four item tiles, one of them done. -->
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="#232426" stroke="#3a3b3f" stroke-width="12"/>
+  <rect x="212" y="212" width="272" height="272" rx="56" fill="#404144"/>
+  <rect x="540" y="212" width="272" height="272" rx="56" fill="#404144"/>
+  <rect x="212" y="540" width="272" height="272" rx="56" fill="#404144"/>
+  <rect x="540" y="540" width="272" height="272" rx="56" fill="#fbd960"/>
+  <path d="M608 680 l48 50 l92 -104" fill="none" stroke="#221b02" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

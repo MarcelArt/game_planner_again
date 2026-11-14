@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Game Planner
+Comment=Work out what you still have to gather and craft
+Exec=game-planner
+Icon=art.bangmarcel.gameplanner
+Terminal=false
+Categories=Game;Utility;
+StartupWMClass=art.bangmarcel.gameplanner
