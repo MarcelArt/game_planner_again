@@ -1,6 +1,10 @@
 build:
     @cargo build --release
 
+# Live Rust UI edits on Linux. Install dx with cargo install dioxus-cli --version 0.7.10 --locked.
+dev:
+    dx serve --platform desktop --hot-patch --features hot-reload
+
 # Packs the release build into an AppImage in dist/, for trying the packaging locally.
 appimage: build
     @./packaging/linux/appimage.sh

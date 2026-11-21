@@ -171,6 +171,22 @@ pub struct Planner {
 
 impl Planner {
     pub fn new(db: Rc<Db>, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        #[cfg(all(debug_assertions, feature = "hot-reload", target_os = "linux"))]
+        {
+            // The devtools callback runs off-thread. Coalesce patches until GPUI redraws.
+            let (redraw, mut patches) = tokio::sync::mpsc::channel(1);
+            dioxus_devtools::subsecond::register_handler(std::sync::Arc::new(move || {
+                let _ = redraw.try_send(());
+            }));
+            cx.spawn(async move |view, cx| {
+                while patches.recv().await.is_some() {
+                    if view.update(cx, |_, cx| cx.notify()).is_err() {
+                        break;
+                    }
+                }
+            }).detach();
+            dioxus_devtools::connect_subsecond();
+        }
         let field = |placeholder: &'static str, window: &mut Window, cx: &mut Context<Self>| {
             cx.new(|cx| InputState::new(window, cx).placeholder(placeholder))
         };
@@ -898,6 +914,16 @@ impl Planner {
 
 impl Render for Planner {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        #[cfg(all(debug_assertions, feature = "hot-reload", target_os = "linux"))]
+        return dioxus_devtools::subsecond::call(|| self.render_view(window, cx));
+
+        #[cfg(not(all(debug_assertions, feature = "hot-reload", target_os = "linux")))]
+        self.render_view(window, cx)
+    }
+}
+
+impl Planner {
+    fn render_view(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Div {
         self.ensure_fields(window, cx);
         let page = match self.page {
             Page::Library => self.library_page(cx).into_any_element(),
