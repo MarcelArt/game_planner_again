@@ -39,7 +39,6 @@ fn fixture() -> Fixture {
 fn open(cx: &mut TestAppContext, db: Rc<Db>) -> (AnyWindowHandle, Entity<Planner>) {
     cx.update(|cx| {
         gpui_kit::init(cx);
-        super::apply_theme(db.light_mode(), cx);
         let bounds = Bounds { origin: Point::default(), size: size(px(1440.), px(900.)) };
         let options = WindowOptions { window_bounds: Some(WindowBounds::Windowed(bounds)), ..Default::default() };
         gpui_kit::open_window(options, cx, |window, cx| cx.new(|cx| Planner::new(db, window, cx))).expect("open test window")
@@ -204,11 +203,42 @@ fn theme_switch_persists_both_modes(cx: &mut TestAppContext) {
     let fx = fixture();
     let (window, _) = open(cx, fx.db.clone());
     cx.update_window(window, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("Settings", cx);
         for (id, light) in [("theme-light", true), ("theme-light", true), ("theme-dark", false)] {
             window.render_frame(cx);
             window.click(id, cx);
-            assert_eq!(super::pal::is_light(), light);
-            assert_eq!(fx.db.light_mode(), light);
+            assert_eq!(fx.db.appearance().unwrap().light, light);
         }
     }).unwrap();
+}
+
+#[gpui_kit::test]
+fn settings_preserves_legacy_mode_and_custom_palette(cx: &mut TestAppContext) {
+    use crate::appearance::Preset;
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("appearance"), "light").unwrap();
+    let db = Rc::new(Db::open(dir.path()).unwrap());
+    let (window, planner) = open(cx, db.clone());
+    cx.update_window(window, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("Settings", cx);
+        window.render_frame(cx);
+        window.click("Gruvbox", cx);
+        let prefs = db.appearance().unwrap();
+        assert!(prefs.light);
+        assert_eq!(prefs.preset, Preset::Gruvbox);
+        let field = planner.read(cx).color_fields[2].clone();
+        field.update(cx, |state, cx| state.commit_hex("#317AB4", window, cx));
+    }).unwrap();
+    cx.update_window(window, |_, window, cx| {
+        assert_eq!(db.appearance().unwrap().preset, Preset::Custom);
+        assert_eq!(super::pal::accent(), 0x317ab4);
+        for id in ["Default", "Custom", "theme-dark", "theme-light"] {
+            window.render_frame(cx);
+            window.click(id, cx);
+        }
+        assert_eq!(super::pal::accent(), 0x317ab4);
+    }).unwrap();
+    assert_eq!(Db::open(dir.path()).unwrap().appearance().unwrap().colors().accent, 0x317ab4);
 }

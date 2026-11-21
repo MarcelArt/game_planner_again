@@ -78,12 +78,24 @@ fn uuid(row: &sqlx::sqlite::SqliteRow, col: &str) -> Result<Uuid> {
 }
 
 impl Db {
-    pub fn light_mode(&self) -> bool {
-        std::fs::read_to_string(self.data_dir.join("appearance")).is_ok_and(|mode| mode.trim() == "light")
+    pub fn appearance(&self) -> Result<crate::appearance::Appearance> {
+        use crate::appearance::Appearance;
+        let contents = match std::fs::read_to_string(self.data_dir.join("appearance")) {
+            Ok(contents) => contents,
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(Appearance::default()),
+            Err(err) => return Err(err.into()),
+        };
+        match contents.trim() {
+            "light" | "dark" => Ok(Appearance { light: contents.trim() == "light", ..Default::default() }),
+            json => Ok(serde_json::from_str(json)?),
+        }
     }
 
-    pub fn save_light_mode(&self, light: bool) -> std::io::Result<()> {
-        std::fs::write(self.data_dir.join("appearance"), if light { "light" } else { "dark" })
+    pub fn save_appearance(&self, appearance: crate::appearance::Appearance) -> Result<()> {
+        let mut file = tempfile::NamedTempFile::new_in(&self.data_dir)?;
+        serde_json::to_writer(&mut file, &appearance)?;
+        file.persist(self.data_dir.join("appearance"))?;
+        Ok(())
     }
 
     /// Opens (creating if needed) the database in `data_dir` and brings its schema up to date.

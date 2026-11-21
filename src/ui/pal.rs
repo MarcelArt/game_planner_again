@@ -1,14 +1,20 @@
 use std::cell::Cell;
 
-// GPUI renders the single planner window and its component theme on the UI thread.
-thread_local! { static LIGHT: Cell<bool> = const { Cell::new(false) }; }
+use crate::appearance::{Appearance, Colors, Preset};
 
-pub(super) fn is_light() -> bool { LIGHT.get() }
-pub(super) fn set_light(light: bool) { LIGHT.set(light) }
+// Resolve the palette once per change, then share it across the UI thread.
+thread_local! { static PALETTE: Cell<Palette> = const { Cell::new(Palette::default_mode(false)) }; }
 
 macro_rules! colors {
     ($($name:ident: $dark:literal, $light:literal;)*) => {
-        $(pub(super) fn $name() -> u32 { if is_light() { $light } else { $dark } })*
+        #[derive(Clone, Copy)]
+        struct Palette { $($name: u32,)* }
+        impl Palette {
+            const fn default_mode(light: bool) -> Self {
+                Self { $($name: if light { $light } else { $dark },)* }
+            }
+        }
+        $(pub(super) fn $name() -> u32 { PALETTE.get().$name })*
     };
 }
 
@@ -59,3 +65,69 @@ colors! {
 pub(super) const TINT_RAW: (u32, u32) = (0x557f6b, 0x446958);
 pub(super) const TINT_MID: (u32, u32) = (0x65666b, 0x535559);
 pub(super) const TINT_END: (u32, u32) = (0x847a55, 0x706644);
+
+fn mix(a: u32, b: u32, percent: u32) -> u32 {
+    let channel = |shift: u32| (((a >> shift) & 255) * (100 - percent) + ((b >> shift) & 255) * percent + 50) / 100;
+    (channel(16) << 16) | (channel(8) << 8) | channel(0)
+}
+
+fn ink(color: u32) -> u32 {
+    let linear = |shift: u32| {
+        let value = ((color >> shift) & 255) as f64 / 255.;
+        if value <= 0.04045 {
+            value / 12.92
+        } else {
+            ((value + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    if 0.2126 * linear(16) + 0.7152 * linear(8) + 0.0722 * linear(0) > 0.179 {
+        0
+    } else {
+        0xffffff
+    }
+}
+
+pub(super) fn apply(appearance: Appearance) {
+    let base = Palette::default_mode(appearance.light);
+    if appearance.preset == Preset::Default {
+        PALETTE.set(base);
+        return;
+    }
+    let Colors {
+        background: bg,
+        foreground: fg,
+        accent,
+    } = appearance.colors();
+    let surface = |percent| mix(bg, fg, percent);
+    PALETTE.set(Palette {
+        bg,
+        text: fg,
+        soft: fg,
+        accent,
+        side: surface(5),
+        tile: surface(7),
+        tile_sel: mix(bg, accent, 16),
+        edge: surface(15),
+        edge_2: surface(26),
+        well: mix(bg, if appearance.light { 0xffffff } else { 0 }, 24),
+        muted: surface(75),
+        accent_text: mix(accent, fg, 25),
+        accent_fill: mix(bg, accent, 22),
+        accent_ink: ink(accent),
+        slate: surface(16),
+        btn: surface(10),
+        btn_hover: surface(19),
+        accent_hover: mix(accent, if ink(accent) == 0 { 0xffffff } else { 0 }, 12),
+        accent_active: mix(accent, if ink(accent) == 0 { 0xffffff } else { 0 }, 18),
+        disabled_text: surface(58),
+        well_edge: surface(12),
+        nav_edge: surface(14),
+        active_tab: mix(bg, accent, 12),
+        detail_bg: surface(4),
+        row_edge: surface(14),
+        row_bg: surface(8),
+        slate_text: fg,
+        default_recipe: surface(9),
+        ..base
+    });
+}

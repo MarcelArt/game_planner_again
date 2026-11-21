@@ -4,6 +4,7 @@
 
 mod pages;
 mod requirements;
+mod settings;
 #[cfg(test)]
 mod tests;
 
@@ -23,6 +24,8 @@ use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 use uuid::Uuid;
 
+use crate::appearance::Appearance;
+use gpui_kit::component::color_picker::ColorPickerState;
 use crate::calc::{self, PlanProgress, Requirements};
 use crate::db::{Db, GameStats, OnClash};
 use crate::domain::{Game, GameData, Input as RecipeInput};
@@ -44,8 +47,9 @@ pub fn add_fonts(cx: &mut App) {
 }
 
 /// Keep native components and the planner surfaces in the same mode.
-pub fn apply_theme(light: bool, cx: &mut App) {
-    pal::set_light(light);
+fn apply_theme(appearance: Appearance, cx: &mut App) {
+    pal::apply(appearance);
+    let light = appearance.light;
     Theme::change(if light { ThemeMode::Light } else { ThemeMode::Dark }, None, cx);
     Theme::update(cx, |t| {
         let c = |v: u32| -> Hsla { rgb(v).into() };
@@ -87,6 +91,7 @@ pub enum Page {
     Plans,
     Items,
     Inventory,
+    Settings,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -106,6 +111,8 @@ enum ImageTarget {
 type ItemSelect = SelectState<SearchableVec<SharedString>>;
 
 pub struct Planner {
+    appearance: Appearance,
+    color_fields: [Entity<ColorPickerState>; 3],
     db: Rc<Db>,
     games: Vec<(Game, GameStats)>,
     /// The open game.
@@ -176,7 +183,17 @@ impl Planner {
         let plan_item = select(window, cx);
         let recipe_input_item = select(window, cx);
 
-        let subs = vec![
+        let appearance = db.appearance().unwrap_or_else(|err| {
+            eprintln!("Could not read appearance settings: {err}");
+            Appearance::default()
+        });
+        apply_theme(appearance, cx);
+        let colors = appearance.colors();
+        let color_fields = [colors.background, colors.foreground, colors.accent].map(|value| {
+            cx.new(|cx| ColorPickerState::new(window, cx).default_value(rgb(value)))
+        });
+
+        let mut subs = vec![
             cx.subscribe_in(&search, window, |_, _, ev: &FieldEvent, _, cx| {
                 if matches!(ev, FieldEvent::Change) {
                     cx.notify();
@@ -209,7 +226,15 @@ impl Planner {
             }),
         ];
 
+        for (i, field) in color_fields.iter().enumerate() {
+            subs.push(cx.subscribe_in(field, window, move |this, _, event, window, cx| {
+                this.edit_color(i, event, window, cx);
+            }));
+        }
+
         let mut this = Self {
+            appearance,
+            color_fields,
             db,
             games: Vec::new(),
             game: None,
@@ -378,7 +403,7 @@ impl Planner {
     // ---- actions ----
 
     fn go(&mut self, page: Page, cx: &mut Context<Self>) {
-        if self.game.is_some() || page == Page::Library {
+        if self.game.is_some() || matches!(page, Page::Library | Page::Settings) {
             self.page = page;
             cx.notify();
         }
@@ -791,7 +816,7 @@ impl Planner {
 
     fn nav_item(&self, page: Page, label: &'static str, icon: Lucide, badge: Option<usize>, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let on = self.page == page;
-        let enabled = self.game.is_some() || page == Page::Library;
+        let enabled = self.game.is_some() || matches!(page, Page::Library | Page::Settings);
         h_flex()
             .id(label)
             .h(px(44.))
@@ -823,6 +848,7 @@ impl Planner {
                         .child(n.to_string()),
                 )
             })
+            .test_support()
     }
 
     fn sidebar(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
@@ -871,24 +897,7 @@ impl Planner {
             .child(divider())
             .child(self.nav_item(Page::Library, "Game library", Lucide::Library, None, cx))
             .child(div().flex_1())
-            .child(h_flex().justify_center().child(
-                h_flex().p(px(3.)).gap(px(2.)).rounded(px(9.)).bg(rgb(pal::well())).children(
-                    [(true, "theme-light", "Light mode", Lucide::Sun), (false, "theme-dark", "Dark mode", Lucide::Moon)]
-                        .into_iter().map(|(light, id, label, icon)| {
-                            let active = pal::is_light() == light;
-                            Button::new(id).ghost().icon(Icon::new(icon)).selected(active).toggled(active)
-                                .tooltip(label).accessibility_label(label)
-                                .on_click(cx.listener(move |this, _, window, cx| {
-                                    if pal::is_light() == light { return; }
-                                    apply_theme(light, cx);
-                                    if let Err(err) = this.db.save_light_mode(light) {
-                                        this.notify_error(&err.into(), window, cx);
-                                    }
-                                    cx.notify();
-                                }))
-                        })
-                ),
-            ))
+            .child(self.nav_item(Page::Settings, "Settings", Lucide::Settings, None, cx))
             .when(self.game.is_some(), |el| {
                 el.child(
                     div()
@@ -915,6 +924,7 @@ impl Planner {
     fn render_view(&mut self, window: &mut Window, cx: &mut Context<Self>) -> Div {
         self.ensure_fields(window, cx);
         let page = match self.page {
+            Page::Settings => self.settings_page(cx).into_any_element(),
             Page::Library => self.library_page(cx).into_any_element(),
             Page::Requirements => self.requirements_page(cx).into_any_element(),
             Page::Plans => self.plans_page(cx).into_any_element(),
