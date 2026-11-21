@@ -28,7 +28,7 @@ fn main() {
     application().with_assets(assets::AllAssets).with_quit_mode(QuitMode::LastWindowClosed).run(move |cx| {
         init(cx);
         ui::add_fonts(cx);
-        ui::apply_theme(cx);
+        ui::apply_theme(db.light_mode(), cx);
 
         let options = WindowOptions {
             window_bounds: Some(WindowBounds::centered(size(px(1440.), px(900.)), cx)),

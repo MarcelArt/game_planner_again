@@ -78,6 +78,14 @@ fn uuid(row: &sqlx::sqlite::SqliteRow, col: &str) -> Result<Uuid> {
 }
 
 impl Db {
+    pub fn light_mode(&self) -> bool {
+        std::fs::read_to_string(self.data_dir.join("appearance")).is_ok_and(|mode| mode.trim() == "light")
+    }
+
+    pub fn save_light_mode(&self, light: bool) -> std::io::Result<()> {
+        std::fs::write(self.data_dir.join("appearance"), if light { "light" } else { "dark" })
+    }
+
     /// Opens (creating if needed) the database in `data_dir` and brings its schema up to date.
     pub fn open(data_dir: impl Into<PathBuf>) -> Result<Self> {
         let data_dir = data_dir.into();

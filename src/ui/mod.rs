@@ -18,7 +18,7 @@ use gpui_kit::component::dialog::{DialogAction, DialogClose, DialogFooter};
 use gpui_kit::component::input::{Input, InputEvent as FieldEvent, InputState};
 use gpui_kit::component::notification::Notification;
 use gpui_kit::component::select::{SearchableVec, SelectState};
-use gpui_kit::component::{Icon, Sizable as _, Theme, ThemeMode, WindowExt as _, h_flex, v_flex};
+use gpui_kit::component::{Icon, Selectable as _, Sizable as _, Theme, ThemeMode, WindowExt as _, h_flex, v_flex};
 use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 use uuid::Uuid;
@@ -28,37 +28,7 @@ use crate::db::{Db, GameStats, OnClash};
 use crate::domain::{Game, GameData, Input as RecipeInput};
 use crate::game_file::GameFile;
 
-/// The Graphite palette.
-pub mod pal {
-    pub const BG: u32 = 0x191a1c;
-    pub const SIDE: u32 = 0x232426;
-    pub const TILE: u32 = 0x212225;
-    pub const TILE_SEL: u32 = 0x2a2b2e;
-    pub const EDGE: u32 = 0x2e2f32;
-    pub const EDGE_2: u32 = 0x3a3b3f;
-    pub const WELL: u32 = 0x121314;
-    pub const TEXT: u32 = 0xffffff;
-    pub const SOFT: u32 = 0xe5e5e7;
-    pub const MUTED: u32 = 0xa7a8ac;
-    pub const ACCENT: u32 = 0xfbd960;
-    pub const ACCENT_TEXT: u32 = 0xfdeaa4;
-    pub const ACCENT_FILL: u32 = 0x514721;
-    pub const ACCENT_INK: u32 = 0x221b02;
-    pub const STEEL: u32 = 0x8799ab;
-    pub const GREEN: u32 = 0x55c792;
-    pub const GREEN_DEEP: u32 = 0x3f9d71;
-    pub const GREEN_FILL: u32 = 0x173a2a;
-    pub const GREEN_EDGE: u32 = 0x2d6a4e;
-    pub const GREEN_INK: u32 = 0x062014;
-    pub const RED: u32 = 0xff8196;
-    pub const SLATE: u32 = 0x404144;
-    pub const BTN: u32 = 0x2b2c2e;
-    pub const BTN_HOVER: u32 = 0x37383c;
-    /// Picture backings: raw material, crafted and used as an input, crafted and used by nothing.
-    pub const TINT_RAW: (u32, u32) = (0x557f6b, 0x446958);
-    pub const TINT_MID: (u32, u32) = (0x65666b, 0x535559);
-    pub const TINT_END: (u32, u32) = (0x847a55, 0x706644);
-}
+mod pal;
 
 /// Registers the bundled Open Sans, so the app looks the same where it is not installed.
 pub fn add_fonts(cx: &mut App) {
@@ -73,35 +43,36 @@ pub fn add_fonts(cx: &mut App) {
     }
 }
 
-/// Applies the Graphite palette to the component library's theme.
-pub fn apply_theme(cx: &mut App) {
-    Theme::change(ThemeMode::Dark, None, cx);
+/// Keep native components and the planner surfaces in the same mode.
+pub fn apply_theme(light: bool, cx: &mut App) {
+    pal::set_light(light);
+    Theme::change(if light { ThemeMode::Light } else { ThemeMode::Dark }, None, cx);
     Theme::update(cx, |t| {
         let c = |v: u32| -> Hsla { rgb(v).into() };
-        t.background = c(pal::BG);
-        t.foreground = c(pal::SOFT);
-        t.border = c(pal::EDGE);
-        t.input = c(pal::EDGE_2);
-        t.muted = c(pal::TILE);
-        t.muted_foreground = c(pal::MUTED);
-        t.popover = c(pal::SIDE);
-        t.popover_foreground = c(pal::SOFT);
-        t.accent = c(pal::BTN_HOVER);
-        t.accent_foreground = c(pal::TEXT);
-        t.secondary = c(pal::BTN);
-        t.secondary_hover = c(pal::BTN_HOVER);
-        t.secondary_foreground = c(pal::SOFT);
-        t.primary = c(pal::ACCENT);
-        t.primary_hover = c(0xfbde75);
-        t.primary_active = c(0xe9c84f);
-        t.primary_foreground = c(pal::ACCENT_INK);
-        t.ring = c(pal::ACCENT);
-        t.caret = c(pal::ACCENT);
-        t.selection = c(pal::ACCENT_FILL);
-        t.colors.list = c(pal::SIDE);
-        t.list_hover = c(pal::BTN_HOVER);
-        t.list_active = c(pal::ACCENT_FILL);
-        t.list_active_border = c(pal::ACCENT);
+        t.background = c(pal::bg());
+        t.foreground = c(pal::soft());
+        t.border = c(pal::edge());
+        t.input = c(pal::edge_2());
+        t.muted = c(pal::tile());
+        t.muted_foreground = c(pal::muted());
+        t.popover = c(pal::side());
+        t.popover_foreground = c(pal::soft());
+        t.accent = c(pal::btn_hover());
+        t.accent_foreground = c(pal::text());
+        t.secondary = c(pal::btn());
+        t.secondary_hover = c(pal::btn_hover());
+        t.secondary_foreground = c(pal::soft());
+        t.primary = c(pal::accent());
+        t.primary_hover = c(pal::accent_hover());
+        t.primary_active = c(pal::accent_active());
+        t.primary_foreground = c(pal::accent_ink());
+        t.ring = c(pal::accent());
+        t.caret = c(pal::accent());
+        t.selection = c(pal::accent_fill());
+        t.colors.list = c(pal::side());
+        t.list_hover = c(pal::btn_hover());
+        t.list_active = c(pal::accent_fill());
+        t.list_active_border = c(pal::accent());
         t.font_family = "Open Sans".into();
         t.font_size = px(14.);
         t.radius = px(7.);
@@ -503,7 +474,7 @@ impl Planner {
                 .child(
                     v_flex()
                         .gap(px(12.))
-                        .child(div().text_color(rgb(pal::MUTED)).child("The game file holds the game's items, recipes and pictures."))
+                        .child(div().text_color(rgb(pal::muted())).child("The game file holds the game's items, recipes and pictures."))
                         .child(Checkbox::new("export-progress").label("Include my progress (inventory and plans)").checked(include).on_change(move |on, window, cx| {
                             let on = *on;
                             let _ = toggle.update(cx, |this, _| this.export_progress = on);
@@ -597,7 +568,7 @@ impl Planner {
                         })
                         .test_support(),
                 )
-                .child(div().flex_1().min_w_0().text_size(px(13.)).text_color(rgb(pal::MUTED)).child(note))
+                .child(div().flex_1().min_w_0().text_size(px(13.)).text_color(rgb(pal::muted())).child(note))
             };
             dialog
                 .title(title.clone())
@@ -828,12 +799,12 @@ impl Planner {
             .gap(px(11.))
             .rounded(px(10.))
             .border_1()
-            .border_color(if on { rgb(0x292a2d) } else { rgba(0x00000000) })
-            .when(on, |el| el.bg(rgb(pal::BG)))
-            .text_color(rgb(if on { pal::TEXT } else { pal::MUTED }))
+            .border_color(if on { rgb(pal::nav_edge()) } else { rgba(0x00000000) })
+            .when(on, |el| el.bg(rgb(pal::bg())))
+            .text_color(rgb(if on { pal::text() } else { pal::muted() }))
             .text_size(px(16.))
             .font_weight(FontWeight::BOLD)
-            .when(enabled, |el| el.cursor_pointer().hover(|s| s.text_color(rgb(pal::TEXT))))
+            .when(enabled, |el| el.cursor_pointer().hover(|s| s.text_color(rgb(pal::text()))))
             .when(!enabled, |el| el.opacity(0.45))
             .on_click(cx.listener(move |this, _, _, cx| this.go(page, cx)))
             .child(Icon::new(icon).with_size(px(19.)))
@@ -846,8 +817,8 @@ impl Planner {
                         .px(px(7.))
                         .justify_center()
                         .rounded(px(11.))
-                        .bg(rgb(pal::GREEN_FILL))
-                        .text_color(rgb(pal::GREEN))
+                        .bg(rgb(pal::green_fill()))
+                        .text_color(rgb(pal::green()))
                         .text_size(px(12.))
                         .child(n.to_string()),
                 )
@@ -857,12 +828,12 @@ impl Planner {
     fn sidebar(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let game = self.game.and_then(|id| self.games.iter().find(|(g, _)| g.id == id)).map(|(g, _)| g.title.clone());
         let ready = self.req.craft.iter().filter(|r| r.ready()).count();
-        let divider = || h_flex().h(px(26.)).px(px(12.)).child(div().flex_1().h(px(1.)).bg(rgb(pal::EDGE_2)));
+        let divider = || h_flex().h(px(26.)).px(px(12.)).child(div().flex_1().h(px(1.)).bg(rgb(pal::edge_2())));
         v_flex()
             .w(px(224.))
             .flex_none()
             .h_full()
-            .bg(rgb(pal::SIDE))
+            .bg(rgb(pal::side()))
             .px(px(14.))
             .pt(px(22.))
             .pb(px(16.))
@@ -875,11 +846,11 @@ impl Planner {
                         .px(px(14.))
                         .max_w(px(190.))
                         .rounded(px(14.))
-                        .bg(rgb(pal::BG))
-                        .text_color(rgb(pal::SOFT))
+                        .bg(rgb(pal::bg()))
+                        .text_color(rgb(pal::soft()))
                         .font_weight(FontWeight::BOLD)
                         .cursor_pointer()
-                        .hover(|s| s.text_color(rgb(pal::TEXT)))
+                        .hover(|s| s.text_color(rgb(pal::text())))
                         .on_click(cx.listener(|this, _, _, cx| this.go(Page::Library, cx)))
                         .child(div().truncate().child(game.unwrap_or_else(|| "No game open".into()))),
                 ),
@@ -888,7 +859,7 @@ impl Planner {
                 h_flex()
                     .h(px(62.))
                     .justify_center()
-                    .text_color(rgb(pal::TEXT))
+                    .text_color(rgb(pal::text()))
                     .text_size(px(19.))
                     .font_weight(FontWeight::EXTRA_BOLD)
                     .child("Game Planner"),
@@ -900,12 +871,30 @@ impl Planner {
             .child(divider())
             .child(self.nav_item(Page::Library, "Game library", Lucide::Library, None, cx))
             .child(div().flex_1())
+            .child(h_flex().justify_center().child(
+                h_flex().p(px(3.)).gap(px(2.)).rounded(px(9.)).bg(rgb(pal::well())).children(
+                    [(true, "theme-light", "Light mode", Lucide::Sun), (false, "theme-dark", "Dark mode", Lucide::Moon)]
+                        .into_iter().map(|(light, id, label, icon)| {
+                            let active = pal::is_light() == light;
+                            Button::new(id).ghost().icon(Icon::new(icon)).selected(active).toggled(active)
+                                .tooltip(label).accessibility_label(label)
+                                .on_click(cx.listener(move |this, _, window, cx| {
+                                    if pal::is_light() == light { return; }
+                                    apply_theme(light, cx);
+                                    if let Err(err) = this.db.save_light_mode(light) {
+                                        this.notify_error(&err.into(), window, cx);
+                                    }
+                                    cx.notify();
+                                }))
+                        })
+                ),
+            ))
             .when(self.game.is_some(), |el| {
                 el.child(
                     div()
                         .text_center()
                         .text_size(px(12.))
-                        .text_color(rgb(pal::MUTED))
+                        .text_color(rgb(pal::muted()))
                         .child(format!("{} items, {} plans", self.data.items.len(), self.data.plans.len())),
                 )
             })
@@ -935,8 +924,8 @@ impl Planner {
         h_flex()
             .size_full()
             .items_start()
-            .bg(rgb(pal::BG))
-            .text_color(rgb(pal::SOFT))
+            .bg(rgb(pal::bg()))
+            .text_color(rgb(pal::soft()))
             .text_size(px(14.))
             .child(self.sidebar(cx))
             .child(div().flex_1().min_w_0().h_full().child(page))
@@ -961,7 +950,7 @@ fn initials_tile(name: &str, size: f32) -> Div {
         .justify_center()
         .text_size(px((size * 0.36).max(11.)))
         .font_weight(FontWeight::EXTRA_BOLD)
-        .text_color(rgb(pal::TEXT))
+        .text_color(rgb(0xffffff))
         .child(initials(name))
 }
 
@@ -978,10 +967,10 @@ pub enum Kind {
 /// A button. Give it `.on_click(..)`; a disabled one ignores clicks.
 pub fn button(id: impl Into<ElementId>, label: impl Into<SharedString>, kind: Kind, enabled: bool) -> Stateful<Div> {
     let (bg, hover, fg) = match kind {
-        Kind::Primary => (pal::ACCENT, 0xfbde75, pal::ACCENT_INK),
-        Kind::Go => (pal::GREEN_DEEP, pal::GREEN, 0x04170e),
-        Kind::Plain => (pal::BTN, pal::BTN_HOVER, pal::SOFT),
-        Kind::Danger => (pal::BTN, 0x5a2630, pal::RED),
+        Kind::Primary => (pal::accent(), pal::accent_hover(), pal::accent_ink()),
+        Kind::Go => (pal::green_deep(), pal::go_hover(), 0x04170e),
+        Kind::Plain => (pal::btn(), pal::btn_hover(), pal::soft()),
+        Kind::Danger => (pal::btn(), pal::danger_hover(), pal::red()),
     };
     h_flex()
         .id(id)
@@ -994,7 +983,7 @@ pub fn button(id: impl Into<ElementId>, label: impl Into<SharedString>, kind: Ki
         .text_size(px(14.))
         .whitespace_nowrap()
         .when(enabled, |el| el.bg(rgb(bg)).text_color(rgb(fg)).cursor_pointer().hover(move |s| s.bg(rgb(hover))))
-        .when(!enabled, |el| el.bg(rgb(pal::WELL)).border_1().border_color(rgb(pal::EDGE)).text_color(rgb(0x8a8b8f)).cursor_not_allowed())
+        .when(!enabled, |el| el.bg(rgb(pal::well())).border_1().border_color(rgb(pal::edge())).text_color(rgb(pal::disabled_text())).cursor_not_allowed())
         .child(label.into())
 }
 
@@ -1014,23 +1003,23 @@ pub fn pill(label: impl Into<SharedString>, bg: u32, fg: u32) -> Div {
 
 /// A dark inset box, the backing of every amount field.
 pub fn well() -> Div {
-    h_flex().h(px(34.)).rounded(px(7.)).bg(rgb(pal::WELL)).border_1().border_color(rgb(0x1c1d1f))
+    h_flex().h(px(34.)).rounded(px(7.)).bg(rgb(pal::well())).border_1().border_color(rgb(pal::well_edge()))
 }
 
 pub fn page_title(title: &'static str, note: impl Into<SharedString>) -> Div {
     h_flex()
         .gap(px(12.))
         .items_baseline()
-        .child(div().text_size(px(20.)).font_weight(FontWeight::EXTRA_BOLD).text_color(rgb(pal::TEXT)).child(title))
-        .child(div().text_color(rgb(pal::MUTED)).child(note.into()))
+        .child(div().text_size(px(20.)).font_weight(FontWeight::EXTRA_BOLD).text_color(rgb(pal::text())).child(title))
+        .child(div().text_color(rgb(pal::muted())).child(note.into()))
 }
 
 pub fn section_title(title: &'static str, note: impl Into<SharedString>) -> Div {
     h_flex()
         .gap(px(10.))
         .items_baseline()
-        .child(div().text_size(px(15.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(title))
-        .child(div().text_size(px(13.)).text_color(rgb(pal::MUTED)).child(note.into()))
+        .child(div().text_size(px(15.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(title))
+        .child(div().text_size(px(13.)).text_color(rgb(pal::muted())).child(note.into()))
 }
 
 /// A game title as a file name: without the characters file systems refuse.

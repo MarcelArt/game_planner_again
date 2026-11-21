@@ -23,8 +23,8 @@ fn stat(label: &'static str, value: impl IntoElement) -> Div {
     h_flex()
         .justify_between()
         .text_size(px(13.))
-        .child(div().text_color(rgb(pal::MUTED)).child(label))
-        .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(value))
+        .child(div().text_color(rgb(pal::muted())).child(label))
+        .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(value))
 }
 
 fn flag(label: impl Into<SharedString>, bg: Rgba, fg: u32) -> Div {
@@ -71,14 +71,14 @@ impl Planner {
                     .cursor_pointer()
                     .font_weight(FontWeight::BOLD)
                     .text_size(px(13.))
-                    .text_color(rgb(if on { pal::TEXT } else { pal::MUTED }))
-                    .when(on, |el| el.bg(rgb(0x2c2d30)).border_b_2().border_color(rgb(pal::ACCENT)))
-                    .hover(|s| s.text_color(rgb(pal::TEXT)))
+                    .text_color(rgb(if on { pal::text() } else { pal::muted() }))
+                    .when(on, |el| el.bg(rgb(pal::active_tab())).border_b_2().border_color(rgb(pal::accent())))
+                    .hover(|s| s.text_color(rgb(pal::text())))
                     .on_click(cx.listener(move |this, _, _, cx| {
                         this.req_tab = t;
                         cx.notify();
                     }))
-                    .child(h_flex().gap(px(5.)).child(label).child(div().text_color(rgb(if on { pal::ACCENT_TEXT } else { pal::MUTED })).child(count.to_string())))
+                    .child(h_flex().gap(px(5.)).child(label).child(div().text_color(rgb(if on { pal::accent_text() } else { pal::muted() })).child(count.to_string())))
             }),
         );
 
@@ -90,21 +90,21 @@ impl Planner {
                 .px(px(6.))
                 .gap(px(10.))
                 .rounded(px(10.))
-                .bg(rgb(pal::TILE))
+                .bg(rgb(pal::tile()))
                 .border_1()
-                .border_color(rgb(if serves { pal::ACCENT } else { pal::EDGE }))
+                .border_color(rgb(if serves { pal::accent() } else { pal::edge() }))
                 .child(self.pic(p.item_id, 40., 40., 32., 8.))
                 .child(
                     v_flex()
                         .flex_1()
                         .min_w_0()
-                        .child(div().truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(self.data.item_name(p.item_id).to_string()))
-                        .child(div().truncate().text_size(px(13.)).text_color(rgb(pal::MUTED)).child(if p.note.is_empty() { "No note".to_string() } else { p.note.clone() })),
+                        .child(div().truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(self.data.item_name(p.item_id).to_string()))
+                        .child(div().truncate().text_size(px(13.)).text_color(rgb(pal::muted())).child(if p.note.is_empty() { "No note".to_string() } else { p.note.clone() })),
                 )
                 .child(if prog.reached {
-                    pill("Reached", pal::GREEN_FILL, pal::GREEN)
+                    pill("Reached", pal::green_fill(), pal::green())
                 } else {
-                    pill(format!("{} / {}", f(prog.assigned), f(p.target)), pal::WELL, pal::TEXT)
+                    pill(format!("{} / {}", f(prog.assigned), f(p.target)), pal::well(), pal::text())
                 })
         }));
 
@@ -129,7 +129,7 @@ impl Planner {
                     .pt(px(28.))
                     .gap(px(14.))
                     .child(page_title("Requirements", format!("{} plans combined", self.data.plans.len())))
-                    .child(tabs.border_b_1().border_color(rgb(pal::EDGE))),
+                    .child(tabs.border_b_1().border_color(rgb(pal::edge()))),
             )
             .child(
                 v_flex()
@@ -166,7 +166,7 @@ impl Planner {
             .pt(px(28.))
             .gap(px(16.))
             .child(page_title("Requirements", ""))
-            .child(div().text_color(rgb(pal::MUTED)).child(text))
+            .child(div().text_color(rgb(pal::muted())).child(text))
             .child(h_flex().child(button("empty-go", label, Kind::Primary, true).on_click(cx.listener(move |this, _, _, cx| this.go(page, cx)))))
     }
 
@@ -192,9 +192,9 @@ impl Planner {
             .gap(px(4.))
             .rounded(px(10.))
             .cursor_pointer()
-            .bg(linear_gradient(180., linear_color_stop(rgb(from), 0.), linear_color_stop(rgb(if selected { pal::TILE_SEL } else { pal::TILE }), 0.55)))
+            .bg(linear_gradient(180., linear_color_stop(rgb(from), 0.), linear_color_stop(rgb(if selected { pal::tile_sel() } else { pal::tile() }), 0.55)))
             .border_1()
-            .border_color(rgb(if selected { pal::ACCENT } else { edge }))
+            .border_color(rgb(if selected { pal::accent() } else { edge }))
             .on_click(cx.listener(move |this, _, _, cx| {
                 this.sel_req = Some(item_id);
                 cx.notify();
@@ -204,13 +204,13 @@ impl Planner {
     fn gather_tile(&self, r: &GatherRow, cx: &mut Context<Self>) -> Stateful<Div> {
         let id = r.item_id;
         let covered = r.missing <= 1e-9;
-        let top = if r.recipe_loop.is_some() { (0x2a2e33, 0x49535d) } else { (pal::TILE, pal::EDGE) };
+        let top = if r.recipe_loop.is_some() { (pal::loop_bg(), pal::loop_edge()) } else { (pal::tile(), pal::edge()) };
         let field = self.gather_fields.get(&id).cloned();
         self.tile(id, top, cx)
             .child(self.pic(id, TILE_W - 14., 100., 72., 8.).when(covered, |el| el.opacity(0.6)))
             .when(covered, |el| el.child(flag("Covered", rgba(0x1213149e), 0xe0e1e3)))
-            .when(r.recipe_loop.is_some(), |el| el.child(flag("Recipe loop", rgb(pal::STEEL), 0x111519)))
-            .child(div().px(px(3.)).truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(self.data.item_name(id).to_string()))
+            .when(r.recipe_loop.is_some(), |el| el.child(flag("Recipe loop", rgb(pal::steel()), 0x111519)))
+            .child(div().px(px(3.)).truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(self.data.item_name(id).to_string()))
             .child(div().px(px(3.)).child(stat("Missing", if covered { "none".to_string() } else { f(r.missing) })))
             .child(div().px(px(3.)).child(stat("Have", format!("{} / {}", f(r.have), f(r.need)))))
             .when_some(field, |el, field| {
@@ -225,11 +225,11 @@ impl Planner {
                                 .mx(px(3.))
                                 .px(px(7.))
                                 .rounded(px(5.))
-                                .bg(rgb(pal::BTN))
+                                .bg(rgb(pal::btn()))
                                 .text_size(px(12.5))
                                 .font_weight(FontWeight::BOLD)
                                 .cursor_pointer()
-                                .hover(|s| s.bg(rgb(pal::BTN_HOVER)))
+                                .hover(|s| s.bg(rgb(pal::btn_hover())))
                                 .on_click(cx.listener(move |this, _, window, cx| this.add_gathered(id, window, cx)))
                                 .child("Add"),
                         ),
@@ -241,18 +241,18 @@ impl Planner {
         let id = r.item_id;
         let done = r.crafts == 0;
         let ready = r.ready();
-        let top = if ready { (0x1b4230, pal::GREEN_EDGE) } else { (pal::TILE, pal::EDGE) };
+        let top = if ready { (pal::ready_bg(), pal::green_edge()) } else { (pal::tile(), pal::edge()) };
         let can = r.can_craft;
         self.tile(id, top, cx)
             .child(self.pic(id, TILE_W - 14., 100., 72., 8.).when(done, |el| el.opacity(0.6)))
             .child(if ready {
-                flag("Ready", rgb(pal::GREEN), pal::GREEN_INK)
+                flag("Ready", rgb(pal::green()), pal::green_ink())
             } else if done {
                 flag("Covered", rgba(0x1213149e), 0xe0e1e3)
             } else {
                 flag("Not ready", rgba(0x1213149e), 0xd1d2d4)
             })
-            .child(div().px(px(3.)).truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(self.data.item_name(id).to_string()))
+            .child(div().px(px(3.)).truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(self.data.item_name(id).to_string()))
             .child(div().px(px(3.)).child(stat("Crafts", r.crafts.to_string())))
             .child(
                 div().px(px(3.)).child(stat(
@@ -260,7 +260,7 @@ impl Planner {
                     h_flex()
                         .gap(px(4.))
                         .child(f(r.makes))
-                        .when(r.surplus > 1e-9, |el| el.child(div().text_size(px(12.)).text_color(rgb(pal::ACCENT_TEXT)).child(format!("+{}", f(r.surplus))))),
+                        .when(r.surplus > 1e-9, |el| el.child(div().text_size(px(12.)).text_color(rgb(pal::accent_text())).child(format!("+{}", f(r.surplus))))),
                 )),
             )
             .child(
@@ -271,13 +271,13 @@ impl Planner {
     }
 
     fn requirements_panel(&self, cx: &mut Context<Self>) -> Div {
-        let body = v_flex().size_full().rounded(px(12.)).bg(rgb(0x212124)).border_1().border_color(rgb(pal::EDGE));
+        let body = v_flex().size_full().rounded(px(12.)).bg(rgb(pal::detail_bg())).border_1().border_color(rgb(pal::edge()));
         let craft = self.sel_req.and_then(|id| self.req.craft.iter().find(|r| r.item_id == id));
         let gather = self.sel_req.and_then(|id| self.req.gather.iter().find(|r| r.item_id == id));
         let body = match (craft, gather) {
             (Some(r), _) => self.craft_panel(body, r, cx),
             (_, Some(r)) => self.gather_panel(body, r),
-            _ => body.p(px(16.)).text_color(rgb(pal::MUTED)).child("Select a tile to see what it needs."),
+            _ => body.p(px(16.)).text_color(rgb(pal::muted())).child("Select a tile to see what it needs."),
         };
         v_flex().w(px(360.)).flex_none().h_full().p(px(16.)).pl_0().child(body)
     }
@@ -292,23 +292,23 @@ impl Planner {
                     .flex_1()
                     .min_w_0()
                     .gap(px(4.))
-                    .child(div().text_size(px(19.)).font_weight(FontWeight::EXTRA_BOLD).text_color(rgb(pal::TEXT)).child(self.data.item_name(id).to_string()))
-                    .child(div().text_size(px(13.)).text_color(rgb(pal::MUTED)).child(sub))
+                    .child(div().text_size(px(19.)).font_weight(FontWeight::EXTRA_BOLD).text_color(rgb(pal::text())).child(self.data.item_name(id).to_string()))
+                    .child(div().text_size(px(13.)).text_color(rgb(pal::muted())).child(sub))
                     .child(h_flex().child(state)),
             )
     }
 
     fn panel_label(text: &'static str) -> Div {
-        div().mt(px(6.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(text)
+        div().mt(px(6.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(text)
     }
 
     fn sums(rows: Vec<(&'static str, String, u32)>) -> Div {
-        v_flex().rounded(px(8.)).bg(rgb(pal::WELL)).px(px(12.)).py(px(4.)).children(rows.into_iter().enumerate().map(|(i, (label, value, color))| {
+        v_flex().rounded(px(8.)).bg(rgb(pal::well())).px(px(12.)).py(px(4.)).children(rows.into_iter().enumerate().map(|(i, (label, value, color))| {
             h_flex()
                 .h(px(27.))
                 .justify_between()
-                .when(i > 0, |el| el.border_t_1().border_color(rgb(0x1e1f21)))
-                .child(div().text_color(rgb(pal::SOFT)).child(label))
+                .when(i > 0, |el| el.border_t_1().border_color(rgb(pal::row_edge())))
+                .child(div().text_color(rgb(pal::soft())).child(label))
                 .child(div().font_weight(FontWeight::BOLD).text_color(rgb(color)).child(value))
         }))
     }
@@ -320,11 +320,11 @@ impl Planner {
                 .px(px(8.))
                 .gap(px(8.))
                 .rounded(px(8.))
-                .bg(rgb(0x26272a))
+                .bg(rgb(pal::row_bg()))
                 .child(self.pic(p.item_id, 28., 28., 24., 6.))
-                .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(self.data.item_name(p.item_id).to_string()))
-                .child(div().flex_1().min_w_0().truncate().text_size(px(13.)).text_color(rgb(pal::MUTED)).child(p.note.clone()))
-                .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(format!("target {}", f(p.target))))
+                .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(self.data.item_name(p.item_id).to_string()))
+                .child(div().flex_1().min_w_0().truncate().text_size(px(13.)).text_color(rgb(pal::muted())).child(p.note.clone()))
+                .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(format!("target {}", f(p.target))))
         }))
     }
 
@@ -332,11 +332,11 @@ impl Planner {
         let id = r.item_id;
         let can = r.can_craft;
         let state = if r.ready() {
-            pill("Ready", pal::GREEN, pal::GREEN_INK)
+            pill("Ready", pal::green(), pal::green_ink())
         } else if r.crafts == 0 {
-            pill("Covered by inventory", pal::SLATE, 0xececed)
+            pill("Covered by inventory", pal::slate(), pal::slate_text())
         } else {
-            pill("Not ready", pal::SLATE, 0xececed)
+            pill("Not ready", pal::slate(), pal::slate_text())
         };
         let inputs = v_flex().gap(px(6.)).children(r.inputs.iter().map(|i| {
             let short = (i.total - i.have).max(0.);
@@ -346,23 +346,23 @@ impl Planner {
                 .gap(px(10.))
                 .rounded(px(10.))
                 .border_1()
-                .border_color(rgb(pal::EDGE))
+                .border_color(rgb(pal::edge()))
                 .child(self.pic(i.item_id, 44., 44., 36., 8.))
                 .child(
                     v_flex()
                         .flex_1()
                         .min_w_0()
-                        .child(div().truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(self.data.item_name(i.item_id).to_string()))
+                        .child(div().truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(self.data.item_name(i.item_id).to_string()))
                         .child(
                             h_flex()
                                 .gap(px(6.))
                                 .text_size(px(13.))
-                                .text_color(rgb(pal::MUTED))
+                                .text_color(rgb(pal::muted()))
                                 .child(format!("{} per craft", f(i.per_craft)))
-                                .when(short > 1e-9, |el| el.child(div().text_color(rgb(pal::RED)).child(format!("{} short", f(short))))),
+                                .when(short > 1e-9, |el| el.child(div().text_color(rgb(pal::red())).child(format!("{} short", f(short))))),
                         ),
                 )
-                .child(pill(format!("{} / {}", f(i.have), f(i.total)), pal::WELL, pal::TEXT))
+                .child(pill(format!("{} / {}", f(i.have), f(i.total)), pal::well(), pal::text()))
         }));
         body.child(
             v_flex()
@@ -372,16 +372,16 @@ impl Planner {
                 .p(px(16.))
                 .gap(px(10.))
                 .child(self.panel_head(id, format!("Craft, default recipe makes {}", f(r.output)), state))
-                .child(h_flex().justify_between().child(Self::panel_label("Inputs")).child(div().mt(px(6.)).text_size(px(13.)).text_color(rgb(pal::MUTED)).child(format!("in inventory / needed for {}", crafts_text(r.crafts)))))
+                .child(h_flex().justify_between().child(Self::panel_label("Inputs")).child(div().mt(px(6.)).text_size(px(13.)).text_color(rgb(pal::muted())).child(format!("in inventory / needed for {}", crafts_text(r.crafts)))))
                 .child(inputs)
                 .child(Self::panel_label("The arithmetic"))
                 .child(Self::sums(vec![
-                    ("Needed", f(r.need), pal::TEXT),
-                    ("In inventory", f(r.have), pal::TEXT),
-                    ("Missing", f(r.missing), pal::TEXT),
-                    ("Crafts, whole", r.crafts.to_string(), pal::ACCENT),
-                    ("Makes", f(r.makes), pal::TEXT),
-                    ("Surplus", f(r.surplus), pal::ACCENT_TEXT),
+                    ("Needed", f(r.need), pal::text()),
+                    ("In inventory", f(r.have), pal::text()),
+                    ("Missing", f(r.missing), pal::text()),
+                    ("Crafts, whole", r.crafts.to_string(), pal::accent()),
+                    ("Makes", f(r.makes), pal::text()),
+                    ("Surplus", f(r.surplus), pal::accent_text()),
                 ]))
                 .child(Self::panel_label("Plans served"))
                 .child(self.plans_served(&r.plans)),
@@ -391,7 +391,7 @@ impl Planner {
                 .p(px(16.))
                 .gap(px(10.))
                 .border_t_1()
-                .border_color(rgb(pal::EDGE))
+                .border_color(rgb(pal::edge()))
                 .child(div().text_size(px(13.)).child(format!("Inventory covers {can} of {} now.", crafts_text(r.crafts))))
                 .child(
                     h_flex()
@@ -418,11 +418,11 @@ impl Planner {
         let id = r.item_id;
         let covered = r.missing <= 1e-9;
         let state = if r.recipe_loop.is_some() {
-            pill("Recipe loop", pal::STEEL, 0x111519)
+            pill("Recipe loop", pal::steel(), 0x111519)
         } else if covered {
-            pill("Covered by inventory", pal::GREEN_FILL, pal::GREEN)
+            pill("Covered by inventory", pal::green_fill(), pal::green())
         } else {
-            pill("Gather", pal::SLATE, 0xececed)
+            pill("Gather", pal::slate(), pal::slate_text())
         };
         let sub = if self.data.is_raw(id) { "Raw material" } else { "Gathered because of a recipe loop" };
         body.child(
@@ -439,16 +439,16 @@ impl Planner {
                         div()
                             .p(px(10.))
                             .rounded(px(8.))
-                            .bg(rgb(0x2a2e33))
+                            .bg(rgb(pal::loop_bg()))
                             .text_size(px(13.))
                             .child(format!("Its default recipes lead back to itself: {chain}. The calculation stops here and asks you to gather it.")),
                     )
                 })
                 .child(Self::panel_label("The arithmetic"))
                 .child(Self::sums(vec![
-                    ("Needed", f(r.need), pal::TEXT),
-                    ("In inventory", f(r.have), pal::TEXT),
-                    ("Missing", f(r.missing), if covered { pal::GREEN } else { pal::ACCENT }),
+                    ("Needed", f(r.need), pal::text()),
+                    ("In inventory", f(r.have), pal::text()),
+                    ("Missing", f(r.missing), if covered { pal::green() } else { pal::accent() }),
                 ]))
                 .child(Self::panel_label("Plans served"))
                 .child(self.plans_served(&r.plans)),
@@ -457,7 +457,7 @@ impl Planner {
             div()
                 .p(px(16.))
                 .border_t_1()
-                .border_color(rgb(pal::EDGE))
+                .border_color(rgb(pal::edge()))
                 .text_size(px(13.))
                 .child("Record what you gathered in the field on its tile. It is added to inventory."),
         )

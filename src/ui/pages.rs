@@ -56,7 +56,7 @@ impl Planner {
                                 .border_color(rgba(0xffffff38))
                                 .text_size(px(19.))
                                 .font_weight(FontWeight::EXTRA_BOLD)
-                                .text_color(rgb(pal::TEXT))
+                                .text_color(rgb(0xffffff))
                                 .child(initials(&game.title)),
                         ),
                 };
@@ -67,25 +67,25 @@ impl Planner {
                         .items_center()
                         .justify_center()
                         .rounded(px(7.))
-                        .bg(rgb(pal::WELL))
-                        .child(div().text_size(px(16.)).font_weight(FontWeight::EXTRA_BOLD).text_color(rgb(pal::TEXT)).child(n.to_string()))
-                        .child(div().text_size(px(12.)).text_color(rgb(pal::MUTED)).child(label))
+                        .bg(rgb(pal::well()))
+                        .child(div().text_size(px(16.)).font_weight(FontWeight::EXTRA_BOLD).text_color(rgb(pal::text())).child(n.to_string()))
+                        .child(div().text_size(px(12.)).text_color(rgb(pal::muted())).child(label))
                 };
                 v_flex()
                     .w(px(320.))
                     .p(px(8.))
                     .gap(px(10.))
                     .rounded(px(12.))
-                    .bg(rgb(pal::TILE))
+                    .bg(rgb(pal::tile()))
                     .border_1()
-                    .border_color(rgb(if open { pal::ACCENT } else { pal::EDGE }))
+                    .border_color(rgb(if open { pal::accent() } else { pal::edge() }))
                     .child(cover)
                     .child(
                         h_flex()
                             .px(px(6.))
                             .gap(px(8.))
-                            .child(div().flex_1().min_w_0().truncate().text_size(px(17.)).font_weight(FontWeight::EXTRA_BOLD).text_color(rgb(pal::TEXT)).child(game.title.clone()))
-                            .when(open, |el| el.child(pill("Open", pal::ACCENT_FILL, pal::ACCENT_TEXT))),
+                            .child(div().flex_1().min_w_0().truncate().text_size(px(17.)).font_weight(FontWeight::EXTRA_BOLD).text_color(rgb(pal::text())).child(game.title.clone()))
+                            .when(open, |el| el.child(pill("Open", pal::accent_fill(), pal::accent_text()))),
                     )
                     .child(h_flex().gap(px(6.)).child(count(stats.items, "items")).child(count(stats.recipes, "recipes")).child(count(stats.plans, "plans")))
                     .child(button(("game-open", key(id)), "Open", Kind::Primary, true).on_click(cx.listener(move |this, _, window, cx| this.open_game(id, window, cx))))
@@ -112,13 +112,13 @@ impl Planner {
             .gap(px(10.))
             .rounded(px(12.))
             .border_1()
-            .border_color(rgb(pal::EDGE))
-            .child(div().text_size(px(15.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child("Add game"))
-            .child(div().text_size(px(13.)).text_color(rgb(pal::MUTED)).child("A thumbnail is optional. Without one the game gets a colour of its own."))
+            .border_color(rgb(pal::edge()))
+            .child(div().text_size(px(15.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child("Add game"))
+            .child(div().text_size(px(13.)).text_color(rgb(pal::muted())).child("A thumbnail is optional. Without one the game gets a colour of its own."))
             .child(field_box(Input::new(&self.new_game)))
             .child(button("game-add", "Add game", Kind::Primary, true).on_click(cx.listener(|this, _, window, cx| this.add_game(window, cx))))
-            .child(h_flex().h(px(18.)).child(div().flex_1().h(px(1.)).bg(rgb(pal::EDGE))))
-            .child(div().text_size(px(13.)).text_color(rgb(pal::MUTED)).child("Or bring in a game file that was exported from Game Planner."))
+            .child(h_flex().h(px(18.)).child(div().flex_1().h(px(1.)).bg(rgb(pal::edge()))))
+            .child(div().text_size(px(13.)).text_color(rgb(pal::muted())).child("Or bring in a game file that was exported from Game Planner."))
             .child(button("game-import", "Import game", Kind::Plain, true).on_click(cx.listener(|this, _, window, cx| this.pick_game_file(window, cx))));
 
         let note = match self.games.len() {
@@ -133,15 +133,15 @@ impl Planner {
 
     pub(super) fn plans_page(&mut self, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let reached = self.progress.iter().filter(|p| p.reached).count();
-        let label = |text: &'static str| div().text_size(px(13.)).text_color(rgb(pal::MUTED)).child(text);
+        let label = |text: &'static str| div().text_size(px(13.)).text_color(rgb(pal::muted())).child(text);
         let form = h_flex()
             .items_end()
             .gap(px(10.))
             .p(px(10.))
             .rounded(px(12.))
-            .bg(rgb(pal::TILE))
+            .bg(rgb(pal::tile()))
             .border_1()
-            .border_color(rgb(pal::EDGE))
+            .border_color(rgb(pal::edge()))
             .child(v_flex().gap(px(4.)).w(px(260.)).child(label("Item")).child(Select::new(&self.plan_item).placeholder("Choose an item").large()))
             .child(v_flex().gap(px(4.)).w(px(120.)).child(label("Target")).child(field_box(Input::new(&self.plan_target))))
             .child(v_flex().gap(px(4.)).flex_1().child(label("Note")).child(field_box(Input::new(&self.plan_note))))
@@ -160,27 +160,27 @@ impl Planner {
                     .px(px(8.))
                     .gap(px(14.))
                     .rounded(px(10.))
-                    .bg(rgb(if prog.reached { 0x1c2f26 } else { pal::TILE }))
+                    .bg(rgb(if prog.reached { pal::reached_bg() } else { pal::tile() }))
                     .border_1()
-                    .border_color(rgb(if prog.reached { pal::GREEN_EDGE } else { pal::EDGE }))
+                    .border_color(rgb(if prog.reached { pal::green_edge() } else { pal::edge() }))
                     .child(self.pic(p.item_id, 40., 40., 32., 8.))
                     .child(
                         h_flex()
                             .w(px(380.))
                             .gap(px(10.))
-                            .child(div().text_size(px(17.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(self.data.item_name(p.item_id).to_string()))
-                            .when(!p.note.is_empty(), |el| el.child(div().flex_1().min_w_0().truncate().text_color(rgb(pal::MUTED)).child(p.note.clone()))),
+                            .child(div().text_size(px(17.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(self.data.item_name(p.item_id).to_string()))
+                            .when(!p.note.is_empty(), |el| el.child(div().flex_1().min_w_0().truncate().text_color(rgb(pal::muted())).child(p.note.clone()))),
                     )
                     .child(
-                        div().flex_1().h(px(8.)).rounded(px(4.)).bg(rgb(pal::WELL)).child(
-                            div().h_full().w(relative(share)).rounded(px(4.)).bg(rgb(if prog.reached { pal::GREEN } else { pal::ACCENT })),
+                        div().flex_1().h(px(8.)).rounded(px(4.)).bg(rgb(pal::well())).child(
+                            div().h_full().w(relative(share)).rounded(px(4.)).bg(rgb(if prog.reached { pal::green() } else { pal::accent() })),
                         ),
                     )
-                    .child(div().w(px(90.)).text_right().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(format!("{} / {}", f(prog.assigned), f(p.target))))
+                    .child(div().w(px(90.)).text_right().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(format!("{} / {}", f(prog.assigned), f(p.target))))
                     .child(h_flex().w(px(96.)).justify_end().child(if prog.reached {
-                        pill("Reached", pal::GREEN, pal::GREEN_INK)
+                        pill("Reached", pal::green(), pal::green_ink())
                     } else {
-                        pill(format!("{} to go", f(p.target - prog.assigned)), pal::SLATE, 0xececed)
+                        pill(format!("{} to go", f(p.target - prog.assigned)), pal::slate(), pal::slate_text())
                     }))
                     .child(button(("plan-del", key(id)), "Delete", Kind::Danger, true).on_click(cx.listener(move |this, _, window, cx| {
                         let result = this.db.delete_plan(id);
@@ -219,12 +219,12 @@ impl Planner {
                     .p(px(6.))
                     .gap(px(4.))
                     .rounded(px(10.))
-                    .bg(rgb(pal::TILE))
+                    .bg(rgb(pal::tile()))
                     .border_1()
-                    .border_color(rgb(pal::EDGE))
+                    .border_color(rgb(pal::edge()))
                     .child(self.pic(id, 118., 96., 72., 8.))
-                    .child(div().px(px(3.)).truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(item.name.clone()))
-                    .child(div().px(px(3.)).text_size(px(13.)).text_color(rgb(if enough { pal::GREEN } else { pal::MUTED })).child(match needed {
+                    .child(div().px(px(3.)).truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(item.name.clone()))
+                    .child(div().px(px(3.)).text_size(px(13.)).text_color(rgb(if enough { pal::green() } else { pal::muted() })).child(match needed {
                         Some(n) => format!("need {}", f(n)),
                         None => "Not needed".to_string(),
                     }))
@@ -256,13 +256,13 @@ impl Planner {
                     .gap(px(3.))
                     .rounded(px(10.))
                     .cursor_pointer()
-                    .bg(rgb(if selected { pal::TILE_SEL } else { pal::TILE }))
+                    .bg(rgb(if selected { pal::tile_sel() } else { pal::tile() }))
                     .border_1()
-                    .border_color(rgb(if selected { pal::ACCENT } else { pal::EDGE }))
+                    .border_color(rgb(if selected { pal::accent() } else { pal::edge() }))
                     .on_click(cx.listener(move |this, _, window, cx| this.select_item(id, window, cx)))
                     .child(self.pic(id, 118., 96., 72., 8.))
-                    .child(div().px(px(3.)).truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(item.name.clone()))
-                    .child(div().px(px(3.)).text_size(px(13.)).text_color(rgb(pal::MUTED)).child(match recipes {
+                    .child(div().px(px(3.)).truncate().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(item.name.clone()))
+                    .child(div().px(px(3.)).text_size(px(13.)).text_color(rgb(pal::muted())).child(match recipes {
                         0 => "Raw material".to_string(),
                         1 => "1 recipe".to_string(),
                         n => format!("{n} recipes"),
@@ -272,8 +272,8 @@ impl Planner {
                             .px(px(3.))
                             .justify_between()
                             .text_size(px(13.))
-                            .child(div().text_color(rgb(pal::MUTED)).child("Have"))
-                            .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(f(self.data.owned(id)))),
+                            .child(div().text_color(rgb(pal::muted())).child("Have"))
+                            .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(f(self.data.owned(id)))),
                     )
                     .into_any_element()
             })
@@ -290,7 +290,7 @@ impl Planner {
         let empty = tiles.is_empty();
         let grid = v_flex()
             .child(h_flex().flex_wrap().items_start().gap(px(10.)).children(tiles))
-            .when(empty, |el| el.child(div().text_color(rgb(pal::MUTED)).child(if query.is_empty() { "No items yet. Name one above and press Add item." } else { "No item matches the search." })));
+            .when(empty, |el| el.child(div().text_color(rgb(pal::muted())).child(if query.is_empty() { "No items yet. Name one above and press Add item." } else { "No item matches the search." })));
 
         h_flex().size_full().items_start().child(div().flex_1().min_w_0().h_full().child(page(head, grid))).child(self.item_panel(cx))
     }
@@ -302,10 +302,10 @@ impl Planner {
             .pr(px(9.))
             .gap(px(7.))
             .rounded(px(8.))
-            .bg(rgb(pal::WELL))
+            .bg(rgb(pal::well()))
             .child(self.pic(item_id, 28., 28., 24., 6.))
-            .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(f(amount)))
-            .child(div().text_color(rgb(pal::SOFT)).child(self.data.item_name(item_id).to_string()))
+            .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(f(amount)))
+            .child(div().text_color(rgb(pal::soft())).child(self.data.item_name(item_id).to_string()))
     }
 
     fn recipe_card(&self, r: &Recipe, only: bool, cx: &mut Context<Self>) -> Div {
@@ -314,15 +314,15 @@ impl Planner {
             .p(px(10.))
             .gap(px(8.))
             .rounded(px(10.))
-            .bg(rgb(if r.is_default { 0x26262a } else { pal::TILE }))
+            .bg(rgb(if r.is_default { pal::default_recipe() } else { pal::tile() }))
             .border_1()
-            .border_color(rgb(if r.is_default && !only { pal::ACCENT } else { pal::EDGE }))
+            .border_color(rgb(if r.is_default && !only { pal::accent() } else { pal::edge() }))
             .child(
                 h_flex()
                     .gap(px(8.))
-                    .child(div().flex_1().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child(format!("Makes {} per craft", f(r.output))))
+                    .child(div().flex_1().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child(format!("Makes {} per craft", f(r.output))))
                     .child(if r.is_default {
-                        pill("Default recipe", pal::ACCENT_FILL, pal::ACCENT_TEXT).into_any_element()
+                        pill("Default recipe", pal::accent_fill(), pal::accent_text()).into_any_element()
                     } else {
                         button(("recipe-default", key(id)), "Make default", Kind::Plain, true)
                             .h(px(26.))
@@ -342,15 +342,15 @@ impl Planner {
     }
 
     fn item_panel(&self, cx: &mut Context<Self>) -> Div {
-        let body = v_flex().size_full().rounded(px(12.)).bg(rgb(0x212124)).border_1().border_color(rgb(pal::EDGE));
+        let body = v_flex().size_full().rounded(px(12.)).bg(rgb(pal::detail_bg())).border_1().border_color(rgb(pal::edge()));
         let shell = |body: Div| v_flex().w(px(400.)).flex_none().h_full().p(px(16.)).pl_0().child(body);
         let Some(item) = self.sel_item.and_then(|id| self.data.item(id)) else {
-            return shell(body.p(px(16.)).text_color(rgb(pal::MUTED)).child("Select an item to see its recipes."));
+            return shell(body.p(px(16.)).text_color(rgb(pal::muted())).child("Select an item to see its recipes."));
         };
         let id = item.id;
         let recipes: Vec<&Recipe> = self.data.recipes_of(id).collect();
         let used = self.data.used_in(id);
-        let label = |text: &'static str| div().text_size(px(13.)).text_color(rgb(pal::MUTED)).child(text);
+        let label = |text: &'static str| div().text_size(px(13.)).text_color(rgb(pal::muted())).child(text);
 
         let head = h_flex()
             .items_start()
@@ -395,8 +395,8 @@ impl Planner {
             .gap(px(8.))
             .rounded(px(10.))
             .border_1()
-            .border_color(rgb(pal::EDGE))
-            .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::TEXT)).child("New recipe"))
+            .border_color(rgb(pal::edge()))
+            .child(div().font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child("New recipe"))
             .child(h_flex().gap(px(8.)).child(label("One craft makes")).child(field_box(Input::new(&self.recipe_output)).flex_1()))
             .when(!self.recipe_draft.is_empty(), |el| el.child(label("Inputs so far. Click one to remove it.")).child(draft))
             .child(label("Add an input"))
@@ -434,9 +434,9 @@ impl Planner {
                             .pr(px(9.))
                             .gap(px(7.))
                             .rounded(px(8.))
-                            .bg(rgb(pal::WELL))
+                            .bg(rgb(pal::well()))
                             .cursor_pointer()
-                            .hover(|s| s.bg(rgb(pal::BTN)))
+                            .hover(|s| s.bg(rgb(pal::btn())))
                             .on_click(cx.listener(move |this, _, window, cx| this.select_item(uid, window, cx)))
                             .child(self.pic(uid, 28., 28., 24., 6.))
                             .child(u.name.clone())

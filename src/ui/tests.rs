@@ -39,7 +39,7 @@ fn fixture() -> Fixture {
 fn open(cx: &mut TestAppContext, db: Rc<Db>) -> (AnyWindowHandle, Entity<Planner>) {
     cx.update(|cx| {
         gpui_kit::init(cx);
-        super::apply_theme(cx);
+        super::apply_theme(db.light_mode(), cx);
         let bounds = Bounds { origin: Point::default(), size: size(px(1440.), px(900.)) };
         let options = WindowOptions { window_bounds: Some(WindowBounds::Windowed(bounds)), ..Default::default() };
         gpui_kit::open_window(options, cx, |window, cx| cx.new(|cx| Planner::new(db, window, cx))).expect("open test window")
@@ -197,4 +197,18 @@ async fn the_export_dialog_leaves_progress_out_unless_its_box_is_ticked(cx: &mut
     .unwrap();
     assert!(crate::game_file::GameFile::read(&plain).unwrap().progress.is_none());
     assert_eq!(crate::game_file::GameFile::read(&full).unwrap().progress.unwrap().plans.len(), 1);
+}
+
+#[gpui_kit::test]
+fn theme_switch_persists_both_modes(cx: &mut TestAppContext) {
+    let fx = fixture();
+    let (window, _) = open(cx, fx.db.clone());
+    cx.update_window(window, |_, window, cx| {
+        for (id, light) in [("theme-light", true), ("theme-light", true), ("theme-dark", false)] {
+            window.render_frame(cx);
+            window.click(id, cx);
+            assert_eq!(super::pal::is_light(), light);
+            assert_eq!(fx.db.light_mode(), light);
+        }
+    }).unwrap();
 }
