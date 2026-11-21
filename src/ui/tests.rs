@@ -25,6 +25,7 @@ struct Fixture {
 fn fixture() -> Fixture {
     let dir = tempfile::tempdir().unwrap();
     let db = Rc::new(Db::open(dir.path()).unwrap());
+    db.save_tutorial(super::Tutorial::Off).unwrap();
     let game = db.add_game("Hollowdeep").unwrap();
     let stick = db.add_item(game, "Stick").unwrap();
     let coal = db.add_item(game, "Coal").unwrap();
@@ -241,4 +242,45 @@ fn settings_preserves_legacy_mode_and_custom_palette(cx: &mut TestAppContext) {
         assert_eq!(super::pal::accent(), 0x317ab4);
     }).unwrap();
     assert_eq!(Db::open(dir.path()).unwrap().appearance().unwrap().colors().accent, 0x317ab4);
+}
+
+#[gpui_kit::test]
+fn tutorial_waits_resumes_finishes_and_replays(cx: &mut TestAppContext) {
+    use super::Tutorial::*;
+    let dir = tempfile::tempdir().unwrap();
+    let db = Rc::new(Db::open(dir.path()).unwrap());
+    assert_eq!(db.tutorial().unwrap(), Library);
+    let (window, planner) = open(cx, db.clone());
+    cx.update_window(window, |_, window, cx| {
+        window.render_frame(cx);
+        window.click("tutorial-next", cx);
+        assert_eq!(db.tutorial().unwrap(), Waiting);
+        let game = db.add_game("Tutorial game").unwrap();
+        planner.update(cx, |view, cx| view.open_game(game, window, cx));
+        assert_eq!(db.tutorial().unwrap(), Intro);
+        for step in [Items, Inventory] {
+            window.render_frame(cx);
+            window.click("tutorial-next", cx);
+            assert_eq!(db.tutorial().unwrap(), step);
+        }
+    }).unwrap();
+
+    let (window, planner) = open(cx, Rc::new(Db::open(dir.path()).unwrap()));
+    cx.update_window(window, |_, window, cx| {
+        assert!(planner.read(cx).game.is_none());
+        let id = db.games().unwrap()[0].id;
+        planner.update(cx, |view, cx| view.open_game(id, window, cx));
+        assert!(planner.read(cx).page == super::Page::Inventory);
+        for step in [Plans, Requirements, Off] {
+            window.render_frame(cx);
+            window.click("tutorial-next", cx);
+            assert_eq!(db.tutorial().unwrap(), step);
+        }
+        for id in ["Settings", "tutorial-replay", "tutorial-skip"] {
+            window.render_frame(cx);
+            window.click(id, cx);
+        }
+        assert_eq!(db.tutorial().unwrap(), Off);
+        assert!(db.load_game(id).unwrap().items.is_empty());
+    }).unwrap();
 }

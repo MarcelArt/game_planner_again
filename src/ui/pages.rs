@@ -8,7 +8,7 @@ use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::*;
 use uuid::Uuid;
 
-use super::{ImageTarget, Kind, Planner, button, initials, page_title, pal, pill, section_title, title_hue, well};
+use super::{Tutorial, ImageTarget, Kind, Planner, button, initials, page_title, pal, pill, section_title, title_hue, well};
 use crate::domain::{Recipe, fmt_amount as f};
 
 fn key(id: Uuid) -> usize {
@@ -116,7 +116,7 @@ impl Planner {
             .child(div().text_size(px(15.)).font_weight(FontWeight::BOLD).text_color(rgb(pal::text())).child("Add game"))
             .child(div().text_size(px(13.)).text_color(rgb(pal::muted())).child("A thumbnail is optional. Without one the game gets a colour of its own."))
             .child(field_box(Input::new(&self.new_game)))
-            .child(button("game-add", "Add game", Kind::Primary, true).on_click(cx.listener(|this, _, window, cx| this.add_game(window, cx))))
+            .child(button("game-add", "Add game", Kind::Primary, true).when(self.tutorial_target() == Some(super::Page::Library), |el| el.border_2().border_color(rgb(pal::text()))).on_click(cx.listener(|this, _, window, cx| this.add_game(window, cx))))
             .child(h_flex().h(px(18.)).child(div().flex_1().h(px(1.)).bg(rgb(pal::edge()))))
             .child(div().text_size(px(13.)).text_color(rgb(pal::muted())).child("Or bring in a game file that was exported from Game Planner."))
             .child(button("game-import", "Import game", Kind::Plain, true).on_click(cx.listener(|this, _, window, cx| this.pick_game_file(window, cx))));
@@ -145,7 +145,7 @@ impl Planner {
             .child(v_flex().gap(px(4.)).w(px(260.)).child(label("Item")).child(Select::new(&self.plan_item).placeholder("Choose an item").large()))
             .child(v_flex().gap(px(4.)).w(px(120.)).child(label("Target")).child(field_box(Input::new(&self.plan_target))))
             .child(v_flex().gap(px(4.)).flex_1().child(label("Note")).child(field_box(Input::new(&self.plan_note))))
-            .child(button("plan-add", "Add plan", Kind::Primary, true).h(px(38.)).on_click(cx.listener(|this, _, window, cx| this.add_plan(window, cx))));
+            .child(button("plan-add", "Add plan", Kind::Primary, true).when(self.tutorial == Tutorial::Plans, |el| el.border_2().border_color(rgb(pal::text()))).h(px(38.)).on_click(cx.listener(|this, _, window, cx| this.add_plan(window, cx))));
 
         let rows: Vec<AnyElement> = self
             .data
@@ -285,7 +285,7 @@ impl Planner {
                 .child(field_box(Input::new(&self.search)).w(px(260.)))
                 .child(div().flex_1())
                 .child(field_box(Input::new(&self.new_item)).w(px(240.)))
-                .child(button("item-add", "Add item", Kind::Primary, true).h(px(38.)).on_click(cx.listener(|this, _, window, cx| this.add_item(window, cx)))),
+                .child(button("item-add", "Add item", Kind::Primary, true).when(self.tutorial == Tutorial::Items, |el| el.border_2().border_color(rgb(pal::text()))).h(px(38.)).on_click(cx.listener(|this, _, window, cx| this.add_item(window, cx)))),
         );
         let empty = tiles.is_empty();
         let grid = v_flex()

@@ -4,6 +4,9 @@ A planner for crafting in games: it records what a game's items are made of and 
 
 ## Language
 
+**Tutorial**:
+A guided walkthrough that introduces the player to the crafting workflow, from opening a game in the library to reading its requirements. The player can skip it and replay it from Settings.
+
 **Game**:
 A game the player plans for. Every other concept belongs to exactly one game. No two games share a title, ignoring case.
 

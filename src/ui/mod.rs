@@ -5,6 +5,8 @@
 mod pages;
 mod requirements;
 mod settings;
+mod tutorial;
+pub(crate) use tutorial::Tutorial;
 #[cfg(test)]
 mod tests;
 
@@ -111,6 +113,7 @@ enum ImageTarget {
 type ItemSelect = SelectState<SearchableVec<SharedString>>;
 
 pub struct Planner {
+    tutorial: Tutorial,
     appearance: Appearance,
     color_fields: [Entity<ColorPickerState>; 3],
     db: Rc<Db>,
@@ -232,7 +235,12 @@ impl Planner {
             }));
         }
 
+        let tutorial = db.tutorial().unwrap_or_else(|err| {
+            window.push_notification(Notification::error(err.to_string()), cx);
+            Tutorial::Off
+        });
         let mut this = Self {
+            tutorial,
             appearance,
             color_fields,
             db,
@@ -264,7 +272,7 @@ impl Planner {
         };
         this.reload(window, cx);
         // Open straight into the only game, if there is exactly one.
-        if this.games.len() == 1 {
+        if this.games.len() == 1 && this.tutorial == Tutorial::Off {
             let id = this.games[0].0.id;
             this.open_game(id, window, cx);
         }
@@ -418,6 +426,11 @@ impl Planner {
         self.reload(window, cx);
         if self.data.items.is_empty() {
             self.page = Page::Items;
+        }
+        match self.tutorial {
+            Tutorial::Library | Tutorial::Waiting => { self.set_tutorial(Tutorial::Intro, window, cx); }
+            Tutorial::Off | Tutorial::Intro => {}
+            step => self.page = step.target(),
         }
     }
 
@@ -817,7 +830,8 @@ impl Planner {
     fn nav_item(&self, page: Page, label: &'static str, icon: Lucide, badge: Option<usize>, cx: &mut Context<Self>) -> impl IntoElement + use<> {
         let on = self.page == page;
         let enabled = self.game.is_some() || matches!(page, Page::Library | Page::Settings);
-        h_flex()
+        let highlighted = self.tutorial_target() == Some(page);
+        let row = h_flex()
             .id(label)
             .h(px(44.))
             .px(px(11.))
@@ -826,6 +840,7 @@ impl Planner {
             .border_1()
             .border_color(if on { rgb(pal::nav_edge()) } else { rgba(0x00000000) })
             .when(on, |el| el.bg(rgb(pal::bg())))
+            .when(highlighted, |el| el.border_color(rgb(pal::accent())).bg(rgb(pal::accent_fill())))
             .text_color(rgb(if on { pal::text() } else { pal::muted() }))
             .text_size(px(16.))
             .font_weight(FontWeight::BOLD)
@@ -848,7 +863,8 @@ impl Planner {
                         .child(n.to_string()),
                 )
             })
-            .test_support()
+            .test_support();
+        v_flex().child(row).when(highlighted, |el| el.child(self.tutorial_bubble(cx)))
     }
 
     fn sidebar(&self, cx: &mut Context<Self>) -> impl IntoElement + use<> {

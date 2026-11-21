@@ -179,7 +179,14 @@ impl Planner {
                                     .child("Editing a color saves a custom theme for this mode."),
                             )
                             .child(fields),
-                    ),
+                    )
+                    .child(h_flex().justify_between().child(section_title("Tutorial", ""))
+                        .child(Button::new("tutorial-replay").label("Replay tutorial")
+                            .on_click(cx.listener(|this, _, window, cx| {
+                                if this.set_tutorial(Tutorial::Library, window, cx) {
+                                    this.go(Page::Library, cx);
+                                }
+                            })))),
             ),
         )
     }

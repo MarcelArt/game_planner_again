@@ -98,11 +98,27 @@ impl Db {
         Ok(())
     }
 
+    pub fn tutorial(&self) -> Result<crate::ui::Tutorial> {
+        match std::fs::File::open(self.data_dir.join("tutorial")) {
+            Ok(file) => Ok(serde_json::from_reader(file)?),
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(crate::ui::Tutorial::Off),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    pub fn save_tutorial(&self, step: crate::ui::Tutorial) -> Result<()> {
+        let mut file = tempfile::NamedTempFile::new_in(&self.data_dir)?;
+        serde_json::to_writer(&mut file, &step)?;
+        file.persist(self.data_dir.join("tutorial"))?;
+        Ok(())
+    }
+
     /// Opens (creating if needed) the database in `data_dir` and brings its schema up to date.
     pub fn open(data_dir: impl Into<PathBuf>) -> Result<Self> {
         let data_dir = data_dir.into();
         std::fs::create_dir_all(&data_dir).with_context(|| format!("creating {}", data_dir.display()))?;
         let rt = tokio::runtime::Builder::new_multi_thread().worker_threads(1).enable_all().build()?;
+        let first_launch = !data_dir.join("game_planner.db").try_exists()?;
         let options = SqliteConnectOptions::new()
             .filename(data_dir.join("game_planner.db"))
             .create_if_missing(true)
@@ -112,7 +128,9 @@ impl Db {
             MIGRATOR.run(&pool).await?;
             anyhow::Ok(pool)
         })?;
-        Ok(Self { rt, pool, data_dir })
+        let db = Self { rt, pool, data_dir };
+        if first_launch { db.save_tutorial(crate::ui::Tutorial::Library)?; }
+        Ok(db)
     }
 
     /// Absolute path of an image stored as a path relative to the data folder.
