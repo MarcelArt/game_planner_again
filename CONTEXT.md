@@ -53,8 +53,20 @@ _Avoid_: Goal, order, wishlist
 The amount of its item a plan wants the player to own.
 
 **Reached**:
-The state of a plan whose target is covered by inventory. Inventory of an item is assigned to that item's plans oldest first, and a reached plan stays until the player deletes it.
+The state of a plan whose target is covered by inventory. Inventory of an item is assigned to that item's plans oldest first, and a reached plan stays until the player deletes it or finishes its project.
 _Avoid_: Completed, done, fulfilled
+
+**Project**:
+A named group of plans that together serve one undertaking, such as building a house. A plan belongs to at most one project, and deleting a project deletes its plans.
+_Avoid_: Group, build, goal
+
+**Template**:
+A named, reusable list of items and amounts from which projects are made, optionally several at once. A project made from a template gets a copy of its list as plans; afterwards neither changes the other.
+_Avoid_: Blueprint, preset, schematic
+
+**Finish**:
+Closing a project whose plans are all reached: their targets are taken out of inventory, as if used up, and the project is deleted with its plans.
+_Avoid_: Complete, close, archive
 
 **Ready**:
 The state of a needed craft whose inputs are all in inventory.
@@ -66,6 +78,10 @@ _Avoid_: Shopping list, bill of materials
 **Surplus**:
 Items a craft yields beyond what was needed, because crafts are whole.
 _Avoid_: Leftover, excess
+
+**Overlay**:
+A small window that stays above the game being played and shows the open game's plans and requirements, so the player can change inventory without leaving the game.
+_Avoid_: HUD
 
 **Progress**:
 A player's inventory and plans in a game, as opposed to the items and recipes that describe the game.
